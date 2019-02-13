@@ -8,6 +8,39 @@
 #include <unistd.h>
 #include <errno.h>
 
+struct elem
+{
+	void* val;
+	struct elem* suiv;
+};
+typedef struct elem elem;
+
+typedef struct 
+{
+	long jobid;
+	elem* processes;
+} Job;
+
+void ajout_deb(elem** liste, void* val)
+{
+	elem* new_elem = malloc(sizeof(elem));
+	new_elem->val = val;
+	new_elem->suiv = *liste;
+	*liste = new_elem;
+}
+
+void lib_mem(elem** liste)
+{
+	elem *tmp1 = *liste, *tmp2;
+	while(tmp1)
+	{
+		tmp2 = tmp1->suiv;
+		free(tmp1);
+		tmp1 = tmp2;
+	}
+	*liste = NULL;
+}
+
 int guard(int n, char* error)
 {
 	if(n < 0)
@@ -20,12 +53,20 @@ int guard(int n, char* error)
 
 void safe_read(int fd, int size, char* buf)
 {
-
+	int red = 0;
+	while(red != size)
+	{
+		red = read(fd, &buf[red], size - red);
+	}
 }
 
 void safe_write(int fd, int size, char* buf)
 {
-
+	int wrote = 0;
+	while(wrote != size)
+	{
+		wrote = write(fd, &buf[wrote], size - wrote);
+	}
 }
 
 
@@ -69,7 +110,8 @@ int main( int argc, char ** argv )
 	 * configurations pour trouver une qui marche
 	 * ces configurations sont définies par les hints */
 
-	for (tmp = res; tmp != NULL; tmp = tmp->ai_next) {
+	for (tmp = res; tmp != NULL; tmp = tmp->ai_next)
+	{
 
 		/* On crée un socket */
 		listen_sock = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
@@ -110,12 +152,38 @@ int main( int argc, char ** argv )
 
 
 
-	fprintf(stderr,"Before accept\n");
+	char *buf = malloc(512 * sizeof(char));
+	elem *jobs = NULL;
+	elem *temp = NULL;
+	double jobid;
+
 
 	while(1)
 	{
 		/* On accepte un client et on récupére un nouveau FD */
 		int client_socket = accept(listen_sock, &client_info, &addr_len);
+		safe_read(client_socket, sizeof(long), buf);
+		jobid = *buf;
+
+
+		temp = jobs;
+		while(temp)
+		{
+			if(((*Job)(temp->val))->jobid == jobid)
+			{
+				ajout_deb(&(((*Job)(temp->val))->processes), (void*)malloc(sizeof(int)));
+				(int)(((*Job)(temp->val))->val) = client_socket;
+
+				jobid = -1;
+			}
+		}
+		if(jobid != -1)
+		{
+			ajout_deb(&jobs, (void*)malloc(sizeof(Job)));
+			((*Job)(jobs->val))->processes = NULL;
+		}
+
+
 
 		fprintf(stderr,"After accept\n");
 
@@ -132,7 +200,7 @@ int main( int argc, char ** argv )
 		}
 		else
 		{
-			
+			//TRAITEMENT
 		}
 
 	}
