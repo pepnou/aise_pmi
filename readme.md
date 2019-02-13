@@ -3,14 +3,14 @@
 To build simply run make, feel free to fork this version for your work !
 
 
-## Using MPIRUN
+## Using PMIRUN
 
 ```
 pmirun [PMI SERVER] [PROCESS] [CMD] [ARGS..]
 ```
 - PMI SERVER: a field exported as PMI_SERVER in the env
 - PROCESS: the number of processes to be launched
-- CMD: the commadn
+- CMD: the command
 - ARGS: optionnal arguments
 
 example:
