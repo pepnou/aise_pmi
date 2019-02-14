@@ -61,6 +61,11 @@ void safe_read(int fd, int size, void* buf)
 	while(red != size)
 	{
 		red = read(fd, buf + red, size - red);
+		if(red == -1)
+		{
+			perror("safe_read");
+			exit(1);
+		}
 	}
 }
 
@@ -70,6 +75,11 @@ void safe_write(int fd, int size, void* buf)
 	while(wrote != size)
 	{
 		wrote = write(fd, buf + wrote, size - wrote);
+		if(wrote == -1)
+		{
+			perror("safe_write");
+			exit(1);
+		}
 	}
 }
 
@@ -165,7 +175,7 @@ int main( int argc, char ** argv )
 	}
 
 	/* On commence a ecouter */
-	guard(listen(listen_sock, 2), "listen");
+	guard(listen(listen_sock, 100), "listen");
 
 
 	/* On va maintenant accepter une connexion */
@@ -184,42 +194,14 @@ int main( int argc, char ** argv )
 	long jobid, instruction, nb_processes;
 
 	fprintf(stderr, "server online\n");
+	int client_socket;
 
 	while(1)
 	{
-		/* On accepte un client et on récupére un nouveau FD */
-		int client_socket = accept(listen_sock, &client_info, &addr_len);
-
-		if (client_socket == -1)
+		/* On accepte tous les clients et on récupére leur nouveau FD */
+		while((client_socket = accept(listen_sock, &client_info, &addr_len)) != -1)
 		{
-			if(errno == EWOULDBLOCK || errno == EAGAIN) //traitement
-			{
-				//fprintf(stderr, "No pending connection, processing connected processes");
-				temp = jobs;
-				while(temp)
-				{
-					temp2 = ((Job*)(temp->val))->processes;
-					while(temp2)
-					{
-						int red = guard( read(*(int*)(temp2->val), (void*)&instruction, sizeof(long)), "write");
-						if(red)
-						{
-							safe_read(*(int*)(temp2->val), sizeof(long) - red, ((void*)&instruction)+red);
-							fprintf(stderr, "%ld\n", instruction);
-						}
-						temp2 = temp2->suiv;
-					}
-					temp = temp->suiv;
-				}
-			}
-			else
-			{
-				perror("accept");
-				exit(1);
-			}
-		}
-		else // new connection
-		{
+			jobid = nb_processes = 0;
 			safe_read(client_socket, sizeof(long), (void*)&jobid);
 			safe_read(client_socket, sizeof(long), (void*)&nb_processes);
 
@@ -248,8 +230,33 @@ int main( int argc, char ** argv )
 
 				ajout_deb(&(((Job*)(jobs->val))->processes), (void*)malloc(sizeof(int)));
 				*((int*)((((Job*)(jobs->val))->processes)->val)) = client_socket;
-
 			}
+		}
+
+		if(errno == EWOULDBLOCK || errno == EAGAIN) //traitement
+		{
+			//fprintf(stderr, "No pending connection, processing connected processes");
+			temp = jobs;
+			while(temp)
+			{
+				temp2 = ((Job*)(temp->val))->processes;
+				while(temp2)
+				{
+					int red = guard( read(*(int*)(temp2->val), (void*)&instruction, sizeof(long)), "write");
+					if(red)
+					{
+						safe_read(*(int*)(temp2->val), sizeof(long) - red, ((void*)&instruction)+red);
+						fprintf(stderr, "%ld\n", instruction);
+					}
+					temp2 = temp2->suiv;
+				}
+				temp = temp->suiv;
+			}
+		}
+		else
+		{
+			perror("accept");
+			exit(1);
 		}
 	}
 

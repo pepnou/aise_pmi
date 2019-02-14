@@ -10,8 +10,8 @@
 #include <errno.h>
 
 typedef struct {
-	int size;
-	int rank;
+	long size;
+	long rank;
 	long jobid;
 	int fd;
 } Info;
@@ -34,6 +34,11 @@ void safe_read(int fd, int size, void* buf)
 	while(red != size)
 	{
 		red = read(fd, buf + red, size - red);
+		if(red == -1)
+		{
+			perror("safe_read");
+			exit(1);
+		}
 	}
 }
 
@@ -43,15 +48,19 @@ void safe_write(int fd, int size, void* buf)
 	while(wrote != size)
 	{
 		wrote = write(fd, buf + wrote, size - wrote);
+		if(wrote == -1)
+		{
+			perror("safe_write");
+			exit(1);
+		}
 	}
 }
-
 
 /* Initialise la bibliothèque client PMI */
 int PMI_Init()
 {
-	info.size = atoi(getenv("PMI_PROCESS_COUNT"));
-	info.rank = atoi(getenv("PMI_RANK"));
+	info.size = atol(getenv("PMI_PROCESS_COUNT"));
+	info.rank = atol(getenv("PMI_RANK"));
 	info.jobid = atol(getenv("PMI_JOB_ID"));
 
 	char *ip, *port;
@@ -133,7 +142,8 @@ int PMI_Init()
 /* Libère la bibliothèque client PMI */
 int PMI_Finalize(void)
 {
-	write(info.fd, (void*)((long)-1), sizeof(long));
+	long end = -1;
+	safe_write(info.fd, sizeof(long), (void*)&end);
 	close(info.fd);
 	return PMI_SUCCESS;
 }
