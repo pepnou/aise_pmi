@@ -28,21 +28,21 @@ int guard(int n, char* error)
 	return n;
 }
 
-void safe_read(int fd, int size, char* buf)
+void safe_read(int fd, int size, void* buf)
 {
 	int red = 0;
 	while(red != size)
 	{
-		red = read(fd, &buf[red], size - red);
+		red = read(fd, buf + red, size - red);
 	}
 }
 
-void safe_write(int fd, int size, char* buf)
+void safe_write(int fd, int size, void* buf)
 {
 	int wrote = 0;
 	while(wrote != size)
 	{
-		wrote = write(fd, &buf[wrote], size - wrote);
+		wrote = write(fd, buf + wrote, size - wrote);
 	}
 }
 
@@ -67,7 +67,7 @@ int PMI_Init()
 	/* Toujours mettre hints a 0 */
 	memset(&hints, 0, sizeof(hints));
 	/* On veut IPV4 ou IPV6, respectivement AF_INET ou AF_INET6 */
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = AF_INET;
 	/* On veut faire du TCP */
 	hints.ai_socktype = SOCK_STREAM;
 
@@ -119,10 +119,13 @@ int PMI_Init()
 		return 1;	
 	}
 
+	fprintf(stderr, "Connected to %s:%s\n",ip, port);
+
 	/* Si nous sommes là le socket est connecté
 	 * avec succes on peut lire et ecrire dedans */
 
-	safe_write(info.fd, sizeof(long), (char*)(&info.jobid));
+	safe_write(info.fd, sizeof(long), (void*)(&info.jobid));
+	safe_write(info.fd, sizeof(long), (void*)(&info.size));
 
 	return PMI_SUCCESS;
 }
@@ -130,6 +133,7 @@ int PMI_Init()
 /* Libère la bibliothèque client PMI */
 int PMI_Finalize(void)
 {
+	write(info.fd, (void*)((long)-1), sizeof(long));
 	close(info.fd);
 	return PMI_SUCCESS;
 }
@@ -168,6 +172,8 @@ int PMI_Barrier(void)
 /* Ajoute une clef et une valeur dans le stockage de la PMI */
 int PMI_KVS_Put( char key[],  char value[])
 {
+
+
 	return PMI_SUCCESS;
 }
 
@@ -177,5 +183,4 @@ int PMI_KVS_Get( char key[], char value[], int length)
 {
 	return PMI_SUCCESS;
 }
-
 
