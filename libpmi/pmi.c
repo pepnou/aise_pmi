@@ -180,17 +180,32 @@ int PMI_Barrier(void)
 }
 
 /* Ajoute une clef et une valeur dans le stockage de la PMI */
-int PMI_KVS_Put( char key[],  char value[])
+int PMI_KVS_Put( char key[],  void* val, long size)
 {
+    long hashed_key;
+    safe_write(info.fd, sizeof(long), &size);
+    safe_write(info.fd, sizeof(long), &hashed_key);
+    safe_write(info.fd, size, val);
 
-
-	return PMI_SUCCESS;
+    return PMI_SUCCESS;
 }
 
 
 /* Lit une clef depuis le stockage de la PMI */
-int PMI_KVS_Get( char key[], char value[], int length)
+int PMI_KVS_Get( char key[], void* val, long size)
 {
-	return PMI_SUCCESS;
+    size = 0;
+    long hashed_key;
+    safe_write(info.fd, sizeof(long), &size);
+    safe_write(info.fd, sizeof(long), &hashed_key);
+
+    safe_read(info.fd, sizeof(long), &size);
+    if(size)
+    {
+        safe_read(info.fd, size, val);
+        return PMI_SUCCESS;
+    }
+    else
+        return PMI_NO_KEY;
 }
 

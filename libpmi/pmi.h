@@ -26,9 +26,9 @@ int PMI_Barrier(void);
 #define PMI_STRING_LEN 256
 
 /* Ajoute une clef et une valeur dans le stockage de la PMI */
-int PMI_KVS_Put( char key[],  char value[]);
+int PMI_KVS_Put( char key[],  void* val, long size);
 
 /* Lit une clef depuis le stockage de la PMI */
-int PMI_KVS_Get( char key[], char value[], int length);
+int PMI_KVS_Get( char key[], void* val, long size);
 
 #endif /* PMI_H */
