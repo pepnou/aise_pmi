@@ -9,6 +9,10 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#define HASH_TAB_SIZE 1024
+
+
+
 struct elem
 {
 	void* val;
@@ -22,7 +26,17 @@ typedef struct
 	long barrier;
 	long nb_processes;
 	elem* processes;
+        elem** hash_tab;
 } Job;
+
+typedef struct
+{
+    long key;
+    long size;
+    void* val;
+} Data;
+
+
 
 void ajout_deb(elem** liste, void* val)
 {
@@ -32,7 +46,7 @@ void ajout_deb(elem** liste, void* val)
 	*liste = new_elem;
 }
 
-void lib_mem(elem** liste)
+void lib_mem_list(elem** liste)
 {
 	elem *tmp1 = *liste, *tmp2;
 	while(tmp1)
@@ -42,6 +56,16 @@ void lib_mem(elem** liste)
 		tmp1 = tmp2;
 	}
 	*liste = NULL;
+}
+
+void lib_mem_job(Job* job)
+{
+    lib_mem_list(&(job->processes));
+
+    for(int i = 0; i < HASH_TAB_SIZE; i++)
+    {
+        lib_mem_list(&(job->hash_tab[i]));
+    }
 }
 
 int guard(int n, char* error)
@@ -81,6 +105,95 @@ void safe_write(int fd, int size, void* buf)
 			exit(1);
 		}
 	}
+}
+
+Data* find_data(elem** liste, long key)
+{
+    elem *temp = liste[key % HASH_TAB_SIZE];
+    Data *data = NULL;
+
+    while(temp)
+    {
+        if(((Data*)temp->val)->key == key)
+        {
+            data = (Data*)temp->val;
+            break;
+        }
+
+        temp = temp->suiv;
+    }
+    return data;
+}
+
+// TODO
+void traitement(Job* job, int fd, int i, long instruction )
+{
+    long key, size = 0;
+    elem *temp, *temp2;
+    Data *data;
+
+    switch(instruction)
+    {
+        case -1: //processus end
+        {
+            temp = job->processes;
+            
+            if(i == 0) // cas particulier de la tete de liste
+            {
+                free(job->processes->val);
+                job->processes = job->processes->suiv;
+                free(temp);
+            }
+            else
+            {
+                for(int j = 0; j < i-1; j++) //on se deplace au parent de l'élément a supprimer
+                    temp = temp->suiv;
+
+                free(temp->suiv->val);
+                temp2 = temp->suiv->suiv;
+                free(temp->suiv);
+                temp->suiv = temp2;
+            }
+
+            job->nb_processes -= 1;
+            break;
+        }
+        case 0: //get key
+        {
+            safe_read(fd, sizeof(long), &key);
+            data = find_data(job->hash_tab, key);
+            if(data)
+            {
+                safe_write(fd, sizeof(long), &(data->size));
+                safe_write(fd, data->size, (void*)(data->val));
+            }
+            else
+                safe_write(fd, sizeof(long), &size);
+            break;
+        }
+        default: //set key of size 'instruction'
+        {
+            safe_read(fd, sizeof(long), &key);
+            data = find_data(job->hash_tab, key);
+            if(data)
+            {
+                free(data->val);
+                data->size = instruction;
+                data->val = (void*)malloc(data->size);
+                safe_read(fd, data->size, data->val);
+            }
+            else
+            {
+                ajout_deb(&(job->hash_tab[key % HASH_TAB_SIZE]), (void*)malloc(sizeof(Data)));
+                data = (Data*)(job->hash_tab[key % HASH_TAB_SIZE]->val);
+                data->size = instruction;
+                data->key = key;
+                safe_read(fd, data->size, data->val);
+            }
+            break;
+        }
+
+    }
 }
 
 
@@ -239,6 +352,7 @@ int main( int argc, char ** argv )
 			temp = jobs;
 			while(temp)
 			{
+                                int i = 0;
 				temp2 = ((Job*)(temp->val))->processes;
 				while(temp2)
 				{
@@ -246,9 +360,12 @@ int main( int argc, char ** argv )
 					if(red)
 					{
 						safe_read(*(int*)(temp2->val), sizeof(long) - red, ((void*)&instruction)+red);
-						fprintf(stderr, "%ld\n", instruction);
+						//fprintf(stderr, "%ld\n", instruction);
+                                                traitement((Job*)(temp->val), *(int*)(temp2->val), i, instruction );
 					}
 					temp2 = temp2->suiv;
+
+                                        i++;
 				}
 				temp = temp->suiv;
 			}
