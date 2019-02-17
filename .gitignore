@@ -4,3 +4,4 @@ test_perf
 test_value
 test_perso
 *.swp
+vim_cmd
