@@ -9,10 +9,12 @@ struct elem
 };
 typedef struct elem elem;
 
-void ajout_deb(elem** liste, void* val);
-void lib_mem_list(elem** liste);
-void* findInQueue(elem* liste, void* val, int (*isEqual)(void*,void*));
-void freeQueue(Queue queue, void (*freeVal)(void*));
+typedef elem* Queue;
+
+void ajout_deb(Queue* list, void* val);
+void* findInQueue(Queue list, void* val, int (*isEqual)(void*,void*));
+void freeQueue(Queue list, void (*freeVal)(void*));
+void supprElem(Queue* list, int i, void (*freeVal)(void*));
 
 
 #endif

@@ -8,49 +8,38 @@ void init_hashtab(HashTab hash)
         hash[i] = NULL;
 }
 
-Data* getValue(HashTab hash, Key key)
+void* getValue(HashTab hash, Key key)
 {
-    elem *list = hash[modulo(key, HASH_TAB_SIZE)];
-    Data *data = NULL;
-
-    while(list)
-    {
-        if(isEqual(((Data*)list->val)->key, key))
-        {
-            data = (Data*)list->val;
-            break;
-        }
-
-        list = list->suiv;
-    }
-    return data;
+    return findInQueue(hash[modulo(key, HASH_TAB_SIZE)], key, isKeyEqual);
 }
 
-void setValue(HashTab hash, Data* data)
+void setValue(HashTab hash, Key key, void* val, void (*freeVal)(void*))
 {
-    Data* previous = getValue(hash, data->key);
+    Data* previous = getValue(hash, key);
     if(previous)
     {
-        free(previous->val);
-        previous->size = data->size;
-        previous->val = data->val;
-
+        freeVal(previous->val);
+        previous->val = val;
     }
     else
     {
-        ajout_deb(&(hash[modulo(key, HASH_TAB_SIZE)]), data);
+        Data* new_data = malloc(sizeof(Data));
+        init_key(new_data->key);
+        copy_key(key, new_data->key);
+        new_data->val = val;
+        ajout_deb(&(hash[modulo(key, HASH_TAB_SIZE)]), new_data);
     }
 }
 
-void freeData(Data* data)
+void freeData(Data* data, void (*freeVal)(void*))
 {
     freeKey(data->key);
-    free(data->val);
+    freeVal(data->val);
     free(data);
 
 }
 
-void freeHash(HashTab hash)
+void freeHash(HashTab hash, void (*freeVal)(void*))
 {
     for(int i = 0; i < HASH_TAB_SIZE; i++)
         freeQueue(hash[i], freeData);

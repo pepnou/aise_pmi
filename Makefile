@@ -13,7 +13,7 @@ pmiserver: $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $(OBJ)
 	
 %.o: %.c %.h
-	$(CC) $(LFLAGS) -o $@ $^
+	$(CC) $(LFLAGS) $^
 
 
 test_value: libpmi.so test/test_values.c

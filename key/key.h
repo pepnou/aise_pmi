@@ -3,11 +3,16 @@
 
 #define KEY_SIZE 256
 
+#include <stdlib.h>
+#include <stdint.h>
+
 typedef uint64_t* Key;
 
 void init_key(Key key);
 int modulo(Key key, int N);
-int isEqual(Key key1, Key key2);
+int isKeyEqual(void* a, void* b);
+void copy_key(Key src, Key dest);
+void freeKey(Key key);
 
 
 #endif
