@@ -15,7 +15,7 @@
 #include "../safeIO/safeIO.h"
 
 
-// TODO : TOUT A REFAIRE AU PROPRE
+// TODO : les suppression a refaire
 
 typedef struct
 {
