@@ -1,3 +1,6 @@
+
+
+
 int guard(int n, char* error)
 {
 	if(n < 0)

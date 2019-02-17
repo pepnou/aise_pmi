@@ -16,7 +16,9 @@ typedef struct
 } Data;
 
 void init_hashtab(HashTab hash);
-void* getValue(HashTab hash, Key key);
+Data* getValue(HashTab hash, Key key);
 void setValue(HashTab hash, Data* data);
+void freeData(Data* data);
+void freeHash(HashTab hash);
 
 #endif 
