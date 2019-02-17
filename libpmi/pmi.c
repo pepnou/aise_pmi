@@ -18,16 +18,6 @@ typedef struct {
 
 Info info;
 
-int guard(int n, char* error)
-{
-	if(n < 0)
-	{
-		perror(error);
-		exit(1);
-	}
-	return n;
-}
-
 void safe_read(int fd, int size, void* buf)
 {
 	int red = 0;

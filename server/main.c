@@ -9,16 +9,11 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#define HASH_TAB_SIZE 1024
 
 
 
-struct elem
-{
-	void* val;
-	struct elem* suiv;
-};
-typedef struct elem elem;
+
+
 
 typedef struct 
 {
@@ -37,27 +32,6 @@ typedef struct
 } Data;
 
 
-
-void ajout_deb(elem** liste, void* val)
-{
-	elem* new_elem = malloc(sizeof(elem));
-	new_elem->val = val;
-	new_elem->suiv = *liste;
-	*liste = new_elem;
-}
-
-void lib_mem_list(elem** liste)
-{
-	elem *tmp1 = *liste, *tmp2;
-	while(tmp1)
-	{
-		tmp2 = tmp1->suiv;
-		free(tmp1);
-		tmp1 = tmp2;
-	}
-	*liste = NULL;
-}
-
 void lib_mem_job(Job* job)
 {
     lib_mem_list(&(job->processes));
@@ -68,44 +42,7 @@ void lib_mem_job(Job* job)
     }
 }
 
-int guard(int n, char* error)
-{
-	if(n < 0)
-	{
-		perror(error);
-		herror(error);
-		exit(1);
-	}
-	return n;
-}
 
-void safe_read(int fd, int size, void* buf)
-{
-	int red = 0;
-	while(red != size)
-	{
-		red = read(fd, buf + red, size - red);
-		if(red == -1)
-		{
-			perror("safe_read");
-			exit(1);
-		}
-	}
-}
-
-void safe_write(int fd, int size, void* buf)
-{
-	int wrote = 0;
-	while(wrote != size)
-	{
-		wrote = write(fd, buf + wrote, size - wrote);
-		if(wrote == -1)
-		{
-			perror("safe_write");
-			exit(1);
-		}
-	}
-}
 
 Data* find_data(elem** liste, long key)
 {
@@ -288,7 +225,12 @@ int main( int argc, char ** argv )
 	}
 
 	/* On commence a ecouter */
-	guard(listen(listen_sock, 100), "listen");
+	ret = listen(listen_sock, 100);
+        if(ret < 0)
+        {
+            perror("listen");
+            exit(1);
+        }
 
 
 	/* On va maintenant accepter une connexion */
@@ -356,7 +298,12 @@ int main( int argc, char ** argv )
 				temp2 = ((Job*)(temp->val))->processes;
 				while(temp2)
 				{
-					int red = guard( read(*(int*)(temp2->val), (void*)&instruction, sizeof(long)), "write");
+					int red = read(*(int*)(temp2->val), (void*)&instruction, sizeof(long));
+                                        if(red < 0)
+                                        {
+                                            perror("read");
+                                            exit(1);
+                                        }
 					if(red)
 					{
 						safe_read(*(int*)(temp2->val), sizeof(long) - red, ((void*)&instruction)+red);
