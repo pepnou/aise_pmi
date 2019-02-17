@@ -26,3 +26,9 @@ void* findInQueue(elem* liste, void* val, int (*isEqual)(void*,void*))
 {
     
 }
+
+// TODO
+void freeQueue(Queue queue, void (*freeVal)(void*))
+{
+    
+}

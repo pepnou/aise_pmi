@@ -9,10 +9,11 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include "../queue/queue.h"
+#include "../hashtab/hashtab.h"
 
 
-
-
+// TODO : TOUT A REFAIRE AU PROPRE
 
 
 typedef struct 
@@ -24,14 +25,6 @@ typedef struct
         elem** hash_tab;
 } Job;
 
-typedef struct
-{
-    long key;
-    long size;
-    void* val;
-} Data;
-
-
 void lib_mem_job(Job* job)
 {
     lib_mem_list(&(job->processes));
@@ -42,27 +35,6 @@ void lib_mem_job(Job* job)
     }
 }
 
-
-
-Data* find_data(elem** liste, long key)
-{
-    elem *temp = liste[key % HASH_TAB_SIZE];
-    Data *data = NULL;
-
-    while(temp)
-    {
-        if(((Data*)temp->val)->key == key)
-        {
-            data = (Data*)temp->val;
-            break;
-        }
-
-        temp = temp->suiv;
-    }
-    return data;
-}
-
-// TODO
 void traitement(Job* job, int fd, int i, long instruction )
 {
     long key, size = 0;

@@ -12,6 +12,7 @@ typedef struct elem elem;
 void ajout_deb(elem** liste, void* val);
 void lib_mem_list(elem** liste);
 void* findInQueue(elem* liste, void* val, int (*isEqual)(void*,void*));
+void freeQueue(Queue queue, void (*freeVal)(void*));
 
 
 #endif
