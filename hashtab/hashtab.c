@@ -13,12 +13,18 @@ void* getValue(HashTab hash, Key key)
     return findInQueue(hash[modulo(key, HASH_TAB_SIZE)], key, isKeyEqual);
 }
 
-void setValue(HashTab hash, Key key, void* val, void (*freeVal)(void*))
+void setValue(HashTab hash, Key key, void* val, Queue freeVal)
 {
     Data* previous = getValue(hash, key);
     if(previous)
     {
-        freeVal(previous->val);
+        if(freeVal == NULL)
+            free(previous->val);
+        else
+        {
+            void (*f)(void*, Queue) = (void (*)(void*, Queue))(freeVal->val);
+            f(previous->val, freeVal->suiv);
+        }
         previous->val = val;
     }
     else
@@ -31,19 +37,32 @@ void setValue(HashTab hash, Key key, void* val, void (*freeVal)(void*))
     }
 }
 
-void freeData(Data* data, void (*freeVal)(void*))
+void freeData(Data* data, Queue freeVal)
 {
+    
     freeKey(data->key);
-    freeVal(data->val);
+    
+    if(freeVal == NULL)
+        free(data->val);
+    else
+    {
+        void (*f)(void*, Queue) = (void (*)(void*, Queue))(freeVal->val);
+        f(data->val, freeVal->suiv);
+    }
+    
     free(data);
-
 }
 
-void freeHash(HashTab hash, void (*freeVal)(void*))
+void freeHash(HashTab hash, Queue freeVal)
 {
-    for(int i = 0; i < HASH_TAB_SIZE; i++)
-        freeQueue(hash[i], freeData);
+   Queue nfreeVal = NULL;
+   ajout_deb(&nfreeVal, (void*)freeData);
+   nfreeVal->suiv = freeVal;
 
+    for(int i = 0; i < HASH_TAB_SIZE; i++)
+        freeQueue(&hash[i], nfreeVal);
+
+    free(nfreeVal);
     free(hash);
 }
 

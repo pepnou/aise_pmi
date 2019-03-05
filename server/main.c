@@ -33,11 +33,24 @@ typedef struct
         HashTab hash_tab;
 } Job;
 
-void freeJob(void* job)
+void freeMsg(void* msg, Queue freeVal)
+{
+    Message* m = (Message*) msg;
+    free(m->val);
+}
+
+void freeJob(void* job, Queue freeVal)
 {
     Job* j = (Job*)job;
-    freeQueue(j->processes, free);
-    freeHash(j->hash_tab);
+
+    freeQueue(&(j->processes), NULL);
+
+    Queue nfreeVal = NULL;
+    ajout_deb(&nfreeVal, (void*)freeMsg);
+    
+    freeHash(j->hash_tab, nfreeVal);
+
+    fakefreeQueue(&nfreeVal);
 }
 
 void traitement(Job* job, int fd, int i, long instruction )
@@ -50,7 +63,7 @@ void traitement(Job* job, int fd, int i, long instruction )
     {
         case -1: //processus end 
         {
-            supprElem(&(job->processes), i, free);
+            supprElem(&(job->processes), i, NULL);
             job->nb_processes -= 1;
             break;
         }
@@ -74,7 +87,11 @@ void traitement(Job* job, int fd, int i, long instruction )
             msg = malloc(sizeof(msg));
             msg->size = instruction;
             msg->val = malloc(sizeof(msg->size));
-            setValue(job->hash_tab, key, (void*)msg);
+
+            Queue tmp = NULL;
+            ajout_deb(&tmp, (void*)freeMsg);
+            setValue(job->hash_tab, key, (void*)msg, tmp);
+            fakefreeQueue(&tmp);
             break;
         }
 

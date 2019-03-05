@@ -13,8 +13,9 @@ typedef elem* Queue;
 
 void ajout_deb(Queue* list, void* val);
 void* findInQueue(Queue list, void* val, int (*isEqual)(void*,void*));
-void freeQueue(Queue list, void (*freeVal)(void*));
-void supprElem(Queue* list, int i, void (*freeVal)(void*));
+void freeQueue(Queue* list, Queue freeVal);
+void fakefreeQueue(Queue* list);
+void supprElem(Queue* list, int i, Queue freeVal);
 
 
 #endif

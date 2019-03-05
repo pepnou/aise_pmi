@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-Wall -W -O3 -g
 LFLAGS=-c
 TARGET=libpmi.so pmiserver test_value test_perf test_perso
-OBJ=./server/main.o ./hashtab/hashtab.o ./key/key.o ./queue/queue.h ./safeIO/safeIO.o #./sha-256/sha-256.o
+OBJ=./server/main.o ./hashtab/hashtab.o ./key/key.o ./queue/queue.o ./safeIO/safeIO.o ./sha-256/sha-256.o
 
 all: $(TARGET)
 
