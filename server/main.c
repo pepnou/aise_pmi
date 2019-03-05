@@ -63,7 +63,7 @@ void traitement(Job* job, int fd, int i, long instruction )
     {
         case -1: //processus end 
         {
-            supprElem(&(job->processes), i, NULL);
+            //supprElem(&(job->processes), i, NULL);
             job->nb_processes -= 1;
             break;
         }
@@ -209,9 +209,9 @@ int main( int argc, char ** argv )
 
 
 
-    elem *jobs = NULL;
-    elem *temp = NULL;
-    elem *temp2 = NULL;
+    Queue jobs = NULL;
+    Queue temp = NULL;
+    Queue temp2 = NULL;
     long jobid, instruction, nb_processes;
     Job* job;
 
@@ -278,7 +278,7 @@ int main( int argc, char ** argv )
 		    if(red)
 		    {
 			safe_read(*(int*)(temp2->val), sizeof(long) - red, ((void*)&instruction)+red);
-		        //fprintf(stderr, "%ld\n", instruction);
+		        fprintf(stderr, "%ld\n", instruction);
                         traitement((Job*)(temp->val), *(int*)(temp2->val), i, instruction );
 		    }
 		    temp2 = temp2->suiv;

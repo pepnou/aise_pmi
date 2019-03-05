@@ -23,18 +23,19 @@ void* findInQueue(Queue list, void* val, int (*isEqual)(void*,void*))
 
 void freeQueue(Queue* list, Queue freeVal)
 {
-    void (*f)(void) = (void (*)(void))(freeVal->val);
-
     Queue tmp1 = *list;
     Queue tmp2;
     while(tmp1)
     {
 	tmp2 = tmp1->suiv;
 
-        if(f == free)
-            f(tmp1->val);
+        if(freeVal == NULL)
+            free(tmp1->val);
         else
+        {
+            void (*f)(void*, Queue) = (void (*)(void*, Queue))(freeVal->val);
             f(tmp1->val, freeVal->suiv);
+        }
 	
         free(tmp1);;
 	tmp1 = tmp2;
@@ -48,7 +49,7 @@ void fakefreeQueue(Queue* list)
     Queue tmp2;
     while(tmp1)
     {
-	tmp2 = tmp1-suiv;	
+	tmp2 = tmp1->suiv;	
         free(tmp1);;
 	tmp1 = tmp2;
     }
@@ -57,12 +58,10 @@ void fakefreeQueue(Queue* list)
 
 void supprElem(Queue* list, int i, Queue freeVal)
 {
-    Queue tmp;
+    Queue tmp = *list;
     Queue tmp2;
     if(i == 0) // cas particulier de la tete de liste
     {
-        tmp = *list;
-
         if(freeVal == NULL)
             free(tmp->val);
         else

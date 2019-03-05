@@ -62,7 +62,7 @@ int main(int argc, char ** argv )
 			snprintf(key, PMI_STRING_LEN, "iter_%d", i);
 			snprintf(val, PMI_STRING_LEN, "%d", i);
 			start = get_time();
-			PMI_KVS_Put(key, val);
+			PMI_KVS_Put(key, val, strlen(val));
 			end = get_time();
 			time += (end - start);
 
