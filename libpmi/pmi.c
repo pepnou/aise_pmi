@@ -1,4 +1,5 @@
 #include "pmi.h"
+#include "../safeIO/safeIO.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -17,34 +18,6 @@ typedef struct {
 } Info;
 
 Info info;
-
-void safe_read(int fd, int size, void* buf)
-{
-	int red = 0;
-	while(red != size)
-	{
-		red = read(fd, buf + red, size - red);
-		if(red == -1)
-		{
-			perror("safe_read");
-			exit(1);
-		}
-	}
-}
-
-void safe_write(int fd, int size, void* buf)
-{
-	int wrote = 0;
-	while(wrote != size)
-	{
-		wrote = write(fd, buf + wrote, size - wrote);
-		if(wrote == -1)
-		{
-			perror("safe_write");
-			exit(1);
-		}
-	}
-}
 
 /* Initialise la bibliothèque client PMI */
 int PMI_Init()
@@ -123,8 +96,8 @@ int PMI_Init()
 	/* Si nous sommes là le socket est connecté
 	 * avec succes on peut lire et ecrire dedans */
 
-	safe_write(info.fd, sizeof(long), (void*)(&info.jobid));
-	safe_write(info.fd, sizeof(long), (void*)(&info.size));
+	safe_write(info.fd, (char*)(&(info.jobid)), sizeof(long), 0);
+	safe_write(info.fd, (char*)(&(info.size)), sizeof(long), 0);
 
 	return PMI_SUCCESS;
 }
@@ -133,7 +106,7 @@ int PMI_Init()
 int PMI_Finalize(void)
 {
 	long end = -1;
-	safe_write(info.fd, sizeof(long), (void*)&end);
+	safe_write(info.fd, (char*)&end, sizeof(long), 0);
 	close(info.fd);
 	return PMI_SUCCESS;
 }
@@ -173,9 +146,9 @@ int PMI_Barrier(void)
 int PMI_KVS_Put( char key[],  void* val, long size)
 {
     long hashed_key;
-    safe_write(info.fd, sizeof(long), &size);
-    safe_write(info.fd, sizeof(long), &hashed_key);
-    safe_write(info.fd, size, val);
+    safe_write(info.fd, (char*)&size, sizeof(long), 0);
+    safe_write(info.fd, (char*)&hashed_key, sizeof(long), 0);
+    safe_write(info.fd, val, size, 0);
 
     return PMI_SUCCESS;
 }
@@ -186,13 +159,13 @@ int PMI_KVS_Get( char key[], void* val, long size)
 {
     size = 0;
     long hashed_key;
-    safe_write(info.fd, sizeof(long), &size);
-    safe_write(info.fd, sizeof(long), &hashed_key);
+    safe_write(info.fd, (char*)&size, sizeof(long), 0);
+    safe_write(info.fd, (char*)&hashed_key, sizeof(long), 0);
 
-    safe_read(info.fd, sizeof(long), &size);
+    safe_read(info.fd, (char*)&size, sizeof(long), 0);
     if(size)
     {
-        safe_read(info.fd, size, val);
+        safe_read(info.fd, (char*)val, size, 0);
         return PMI_SUCCESS;
     }
     else

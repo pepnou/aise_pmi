@@ -18,37 +18,63 @@
 typedef struct
 {
     long size;
-    void* val;
+    char* val;
 } Message;
 
 
 typedef struct 
 {
-	long jobid;
-	long barrier;
-	long nb_processes;
-	Queue processes;
+    long jobid;
+    long barrier;
+    long nb_processes;
+    Queue processes;
     HashTab hash_tab;
 } Job;
 
-void freeMsg(void* msg, Queue freeVal)
+void freeMsg(Message* msg)
 {
-    Message* m = (Message*) msg;
-    free(m->val);
+    free(msg->val);
+    free(msg);
 }
 
-void freeJob(void* job, Queue freeVal)
+void freeJob(Job* job)
 {
-    Job* j = (Job*)job;
+    Queue tmp1;
+    Queue tmp2;
 
-    freeQueue(&(j->processes), NULL);
+    tmp1 = job->processes;
+    while(tmp1)
+    {
+        tmp2 = tmp1->suiv;
 
-    Queue nfreeVal = NULL;
-    ajout_deb(&nfreeVal, (void*)freeMsg);
-    
-    freeHash(j->hash_tab, nfreeVal);
+        free((int*)(tmp1->val));
+        free(tmp1);
 
-    fakefreeQueue(&nfreeVal);
+        tmp1 = tmp2;
+    }
+
+    Data* temp_data;
+    Message* temp_msg;
+
+    for(int i = 0; i < HASH_TAB_SIZE; i++)
+    {
+        tmp1 = job->hash_tab[i];
+        while(tmp1)
+        {
+            tmp2 = tmp1->suiv;
+
+            temp_data = (Data*)(tmp1->val);
+            temp_msg = (Message*)(temp_data->val);
+            freeMsg(temp_msg);
+            freeKey(temp_data->key);
+            free(temp_data);
+            free(tmp1);
+
+            tmp1 = tmp2;
+        }
+    }
+
+    free(job);
 }
 
 void traitement(Job* job, int fd, int i, long instruction )
@@ -61,35 +87,34 @@ void traitement(Job* job, int fd, int i, long instruction )
     {
         case -1: //processus end 
         {
-            //supprElem(&(job->processes), i, NULL);
-            job->nb_processes -= 1;
+            //free(supprElem(&(job->processes), i));
+            //job->nb_processes -= 1;
             break;
         }
         case 0: //get key
         {
-            safe_read(fd, KEY_SIZE / 8, &key);
+            safe_read(fd, (char*)&key, KEY_SIZE / 8, 0);
             msg = getValue(job->hash_tab, key);
 
             if(msg)
             {
-                safe_write(fd, sizeof(long), &(msg->size));
-                safe_write(fd, msg->size, (void*)(msg->val));
+                safe_write(fd, (char*)&(msg->size), sizeof(long), 0);
+                safe_write(fd, (char*)(msg->val), msg->size, 0);
             }
             else
-                safe_write(fd, sizeof(long), &size);
+                safe_write(fd, (char*)&size, sizeof(long), 0);
             break;
         }
         default: //set key of size 'instruction'
         {
-            safe_read(fd, sizeof(long), &key);
+            safe_read(fd, (char*)&key, sizeof(long), 0);
             msg = malloc(sizeof(msg));
             msg->size = instruction;
             msg->val = malloc(sizeof(msg->size));
 
-            Queue tmp = NULL;
-            ajout_deb(&tmp, (void*)freeMsg);
-            setValue(job->hash_tab, key, (void*)msg, tmp);
-            fakefreeQueue(&tmp);
+            void* previous_val = setValue(job->hash_tab, key, (void*)msg);
+            if(previous_val)
+                freeMsg((Message*)previous_val);
             break;
         }
 
@@ -229,8 +254,8 @@ int main( int argc, char ** argv )
     	while((client_socket = accept(listen_sock, &client_info, &addr_len)) != -1)
     	{
     	    jobid = nb_processes = 0;
-    	    safe_read(client_socket, sizeof(long), (void*)&jobid);
-    	    safe_read(client_socket, sizeof(long), (void*)&nb_processes);
+    	    safe_read(client_socket, (char*)&jobid, sizeof(long), 0);
+    	    safe_read(client_socket, (char*)&nb_processes, sizeof(long), 0);
 
     	    fprintf(stderr, "new connection for job %ld composed of %ld processes\n", jobid, nb_processes);
 
@@ -239,19 +264,16 @@ int main( int argc, char ** argv )
     	    {
                 job = (Job*)(temp->val);
 
-        		if(job->jobid == jobid)
-        		{
-        		    /*ajout_deb(&(job->processes), (void*)malloc(sizeof(int)));
-        		    *((int*)((job->processes)->val)) = client_socket;*/
-                            
+                if(job->jobid == jobid)
+                {
                     temp_fd = malloc(sizeof(int));
                     *temp_fd = client_socket;
                     ajout_deb(&(job->processes), (void*)temp_fd);
     	    
                     jobid = -1;
                     break;
-        		}
-        		temp = temp->suiv;
+                }
+                temp = temp->suiv;
     	    }
 
     	    if(jobid != -1)
@@ -261,17 +283,8 @@ int main( int argc, char ** argv )
                     job->nb_processes = nb_processes;
                     job->barrier = 0;
                     
-                    ajout_deb(&jobs, (void*)&job);
-                    
+                    ajout_deb(&jobs, (void*)job);
 
-
-                    //job = (Job*)(jobs->val);
-                    
-                    /*
-                    ajout_deb(&(job->processes), (void*)malloc(sizeof(int)));
-                    *((int*)((job->processes)->val)) = client_socket;
-                    */
-                    
                     temp_fd = malloc(sizeof(int));
                     *temp_fd = client_socket;
                     ajout_deb(&(job->processes), (void*)temp_fd);
@@ -285,29 +298,31 @@ int main( int argc, char ** argv )
     	    while(temp)
     	    {
                 int i = 0;
-        		temp2 = ((Job*)(temp->val))->processes;
-        		while(temp2)
-        		{
-        		    int red = read(*(int*)(temp2->val), (void*)&instruction, sizeof(long));
+        	temp2 = ((Job*)(temp->val))->processes;
+        	while(temp2)
+        	{
+        	    int red = read(*(int*)(temp2->val), (void*)&instruction, sizeof(long));
                     if(red < 0)
                     {
                         perror("read");
                         exit(1);
                     }
 
-        		    if(red)
-        		    {
-                        safe_read(*(int*)(temp2->val), sizeof(long) - red, ((void*)&instruction)+red);
-        		        fprintf(stderr, "%ld\n", instruction);
+        	    if(red)
+        	    {
+                        safe_read(*(int*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
+                        fprintf(stderr, "%ld\n", instruction);
                         traitement((Job*)(temp->val), *(int*)(temp2->val), i, instruction );
-        		    }
-        		    temp2 = temp2->suiv;
+                    }
+                    temp2 = temp2->suiv;
 
-                    i++;
-        		}
-        		temp = temp->suiv;
+                i++;
+                }
+
+            temp = temp->suiv;
     	    }
     	}
+
     	else
     	{
     	    perror("accept");
