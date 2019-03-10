@@ -283,6 +283,21 @@ int main( int argc, char ** argv )
     	/* On accepte tous les clients et on récupére leur nouveau FD */
     	while((client_socket = accept(listen_sock, &client_info, &addr_len)) != -1)
     	{
+            /* On passe listen_sock en non-blocant */
+            int flags = fcntl(client_socket, F_GETFL);
+            if(flags == -1)
+            {
+                perror("get flags");
+                exit(1);
+            }
+            int ret = fcntl(client_socket, F_SETFL, flags | O_NONBLOCK);
+            if(ret == -1)
+            {
+                perror("get flags");
+                exit(1);
+            }
+
+
     	    jobid = nb_processes = 0;
     	    safe_read(client_socket, (char*)&jobid, sizeof(long), 0);
     	    safe_read(client_socket, (char*)&nb_processes, sizeof(long), 0);
@@ -335,10 +350,15 @@ int main( int argc, char ** argv )
         	while(temp2)
         	{
         	    int red = read(*(int*)(temp2->val), (void*)&instruction, sizeof(long));
-                    if(red < 0)
+                    if(red == -1)
                     {
-                        perror("read");
-                        exit(1);
+                        if(errno == EAGAIN || errno == EWOULDBLOCK)
+                            red = 0;
+                        else
+                        {
+                            perror("read");
+                            exit(1);
+                        }
                     }
 
         	    if(red)
