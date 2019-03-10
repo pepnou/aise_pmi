@@ -77,7 +77,7 @@ void freeJob(Job* job)
     free(job);
 }
 
-void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, long instruction )
+void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, long instruction)
 {
     Key key; 
     long size = 0;
@@ -87,8 +87,24 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
     {
         case -2: //barrier
         {
-            
-            break;
+        	job->barrier = job->barrier + 1;
+        	fprintf(stderr, "increment\n");
+
+        	if(job->barrier == job->nb_processes)
+        	{
+        		job->barrier = 0;
+        		Queue tmp = job->processes;
+        		while(tmp)
+        		{
+        			fprintf(stderr, "in while\n");
+        			char c;
+        			safe_write((*((int*)tmp->val)), &c, 1, 0);
+        			tmp = tmp->suiv;
+        		}
+        	}
+        	fprintf(stderr, "end case -2\n");
+
+        	break;
         }
         case -1: //processus end 
         {
@@ -106,7 +122,7 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
         }
         case 0: //get key
         {
-            safe_read(fd, (char*)&key, KEY_SIZE / 8, 0);
+            safe_read(fd, (char*)&key, KEY_SIZE/8, 0);
             msg = getValue(job->hash_tab, key);
 
             if(msg)
@@ -263,6 +279,7 @@ int main( int argc, char ** argv )
 
     while(1)
     {
+    	//fprintf(stderr, "bonsoir");
     	/* On accepte tous les clients et on récupére leur nouveau FD */
     	while((client_socket = accept(listen_sock, &client_info, &addr_len)) != -1)
     	{
@@ -335,6 +352,7 @@ int main( int argc, char ** argv )
                         temp2 = temp2->suiv;
                         process_num++;
                     }
+                    
                     else
                         break;
                 }

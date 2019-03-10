@@ -12,6 +12,7 @@ int main()
 	PMI_Get_size(&size);
 	PMI_Get_rank(&rank);
 	PMI_Get_job(&jobid);
+	PMI_Barrier();
 
 
 	fprintf(stderr, "%d / %d on job %d\n", rank + 1, size, jobid);
