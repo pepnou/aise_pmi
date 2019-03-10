@@ -42,32 +42,3 @@ void* setValue(HashTab hash, Key key, void* val)
     return previous_val;
 }
 
-/*void freeData(Data* data, Queue freeVal)
-{
-    
-    freeKey(data->key);
-    
-    if(freeVal == NULL)
-        free(data->val);
-    else
-    {
-        void (*f)(void*, Queue) = (void (*)(void*, Queue))(freeVal->val);
-        f(data->val, freeVal->suiv);
-    }
-    
-    free(data);
-}
-
-void freeHash(HashTab hash, Queue freeVal)
-{
-   Queue nfreeVal = NULL;
-   ajout_deb(&nfreeVal, (void*)freeData);
-   nfreeVal->suiv = freeVal;
-
-    for(int i = 0; i < HASH_TAB_SIZE; i++)
-        freeQueue(&hash[i], nfreeVal);
-
-    free(nfreeVal);
-    free(hash);
-}*/
-

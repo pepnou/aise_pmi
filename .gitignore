@@ -7,3 +7,4 @@ test_perso
 vim_cmd
 *.o
 *.gch
+*.json
