@@ -8,7 +8,7 @@
 
 typedef uint64_t* Key;
 
-void init_key(Key key);
+void init_key(Key* key);
 int modulo(Key key, int N);
 int isKeyEqual(void* a, void* b);
 void copy_key(Key src, Key dest);

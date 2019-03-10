@@ -1,8 +1,14 @@
 #include "key.h"
+#include <stdio.h>
 
-void init_key(Key key)
+void init_key(Key* key)
 {
-    key = malloc(KEY_SIZE / 8);
+    *key = malloc(KEY_SIZE / 8);
+    if(*key == NULL)
+    {
+        perror("malloc");
+        exit(1);
+    }
 }
 
 // (2^KEY_SIZE) % N doit etre egal a 0

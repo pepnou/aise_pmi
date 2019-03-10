@@ -1,5 +1,6 @@
 #include "hashtab.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 
 void init_hashtab(HashTab* hash)
@@ -33,7 +34,12 @@ void* setValue(HashTab hash, Key key, void* val)
     else
     {
         Data* new_data = malloc(sizeof(Data));
-        init_key(new_data->key);
+        if(new_data == NULL)
+        {
+            perror("malloc");
+            exit(1);
+        }
+        init_key(&(new_data->key));
         copy_key(key, new_data->key);
         new_data->val = val;
         ajout_deb(&(hash[modulo(key, HASH_TAB_SIZE)]), new_data);

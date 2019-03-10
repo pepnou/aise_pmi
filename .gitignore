@@ -8,3 +8,4 @@ vim_cmd
 *.o
 *.gch
 *.json
+*.swo
