@@ -17,6 +17,7 @@ void* findInQueue(Queue list, void* val, int (*isEqual)(void*,void*))
     {
         if(isEqual(val, tmp->val))
             return tmp->val;
+        tmp = tmp->suiv;
     }
     return NULL;
 }

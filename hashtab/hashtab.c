@@ -1,5 +1,6 @@
 #include "hashtab.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 
 void init_hashtab(HashTab* hash)
@@ -15,16 +16,28 @@ void init_hashtab(HashTab* hash)
         (*hash)[i] = NULL;
 }
 
-void* getValue(HashTab hash, Key key)
+int isKeyDataEqual(void* k, void* d)
 {
-    return findInQueue(hash[modulo(key, HASH_TAB_SIZE)], key, isKeyEqual);
+    Key key = (Key) k;
+    Data* data = (Data*) d;
+    
+    return isKeyEqual(key, data->key);
 }
 
-void* setValue(HashTab hash, Key key, void* val)
+void* getValue(HashTab hash, Key key)
+{
+    Data* data = (Data*)findInQueue(hash[modulo(key, HASH_TAB_SIZE)], (void*)key, isKeyDataEqual);
+    if(data)
+        return data->val;
+    else
+        return NULL;
+}
+
+void* setValue(HashTab* hash, Key key, void* val)
 {
     void* previous_val = NULL;
 
-    Data* previous = getValue(hash, key);
+    Data* previous = getValue(*hash, key);
     if(previous)
     {
         previous_val = previous->val;
@@ -33,10 +46,16 @@ void* setValue(HashTab hash, Key key, void* val)
     else
     {
         Data* new_data = malloc(sizeof(Data));
-        init_key(new_data->key);
+        if(new_data == NULL)
+        {
+            perror("malloc");
+            exit(1);
+        }
+        init_key(&(new_data->key));
         copy_key(key, new_data->key);
         new_data->val = val;
-        ajout_deb(&(hash[modulo(key, HASH_TAB_SIZE)]), new_data);
+    
+        ajout_deb(&((*hash)[modulo(key, HASH_TAB_SIZE)]), (void*)new_data);
     }
 
     return previous_val;

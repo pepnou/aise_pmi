@@ -79,7 +79,8 @@ void freeJob(Job* job)
 
 void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, long instruction)
 {
-    Key key; 
+    Key key;
+    init_key(&key);
     long size = 0;
     Message* msg;
 
@@ -120,10 +121,10 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
             }
             break;
         }
-        case 0: //get key
+        case 0: //get value
         {
-            safe_read(fd, (char*)&key, KEY_SIZE/8, 0);
-            msg = getValue(job->hash_tab, key);
+            safe_read(fd, (char*)key, KEY_SIZE / 8, 0);
+            msg = (Message*)getValue(job->hash_tab, key);
 
             if(msg)
             {
@@ -134,20 +135,27 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
                 safe_write(fd, (char*)&size, sizeof(long), 0);
             break;
         }
-        default: //set key of size 'instruction'
+        default: //set value of size 'instruction'
         {
-            safe_read(fd, (char*)&key, sizeof(long), 0);
-            msg = malloc(sizeof(msg));
+            safe_read(fd, (char*)key, KEY_SIZE / 8, 0);
+            msg = malloc(sizeof(Message));
             msg->size = instruction;
-            msg->val = malloc(sizeof(msg->size));
+            msg->val = malloc(msg->size * sizeof(char));
+            if(msg->val == NULL)
+            {
+                perror("malloc");
+                exit(1);
+            }
+            safe_read(fd, msg->val, msg->size, 0);
 
-            void* previous_val = setValue(job->hash_tab, key, (void*)msg);
+            void* previous_val = setValue(&(job->hash_tab), key, (void*)msg);
             if(previous_val)
                 freeMsg((Message*)previous_val);
             break;
         }
-
     }
+
+    freeKey(key);
 }
 
 int create_server(int argc, char** argv)

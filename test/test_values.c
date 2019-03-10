@@ -38,7 +38,7 @@ int main(int argc, char ** argv )
 		snprintf(key, PMI_STRING_LEN, "rank_%d_iter_%d", rank, i);
 		snprintf(val, PMI_STRING_LEN, "%d", rand());
 		printf("RANK %d SET %s = %s\n", rank, key, val);
-		if( PMI_KVS_Put(key, val, strlen(val)) != PMI_SUCCESS)
+		if( PMI_KVS_Put(key, val, PMI_STRING_LEN) != PMI_SUCCESS)
 		{
 			fprintf(stderr, "Could not put key\n");
 			return 1;

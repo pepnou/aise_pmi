@@ -1,8 +1,14 @@
 #include "key.h"
+#include <stdio.h>
 
-void init_key(Key key)
+void init_key(Key* key)
 {
-    key = malloc(KEY_SIZE / 8);
+    *key = malloc(KEY_SIZE / 8);
+    if(*key == NULL)
+    {
+        perror("malloc");
+        exit(1);
+    }
 }
 
 // (2^KEY_SIZE) % N doit etre egal a 0
@@ -23,7 +29,7 @@ int isKeyEqual(void* a, void* b)
     Key key2 = (Key)b;
     int res = 1;
 
-    for(int i = 0; i < KEY_SIZE / 64; i++)
+    for(int i = 0; i < KEY_SIZE / 64 && res; i++)
         res = res && (key1[i] == key2[i]);
     
     return res;
