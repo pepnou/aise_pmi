@@ -144,10 +144,8 @@ int PMI_Barrier()
 {
 	long instruction = -2;
 	safe_write(info.fd, (char*)&instruction, sizeof(long), 0);
-	fprintf(stderr, "j'ai ecirt\n");
 	char c;
 	safe_read(info.fd, &c, 1, 0);
-	fprintf(stderr, "j'ai lu\n");
 
     return PMI_SUCCESS;
 }

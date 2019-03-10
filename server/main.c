@@ -89,7 +89,6 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
         case -2: //barrier
         {
         	job->barrier = job->barrier + 1;
-        	fprintf(stderr, "increment\n");
 
         	if(job->barrier == job->nb_processes)
         	{
@@ -97,13 +96,11 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
         		Queue tmp = job->processes;
         		while(tmp)
         		{
-        			fprintf(stderr, "in while\n");
         			char c;
         			safe_write((*((int*)tmp->val)), &c, 1, 0);
         			tmp = tmp->suiv;
         		}
         	}
-        	fprintf(stderr, "end case -2\n");
 
         	break;
         }
