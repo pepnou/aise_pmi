@@ -4,6 +4,8 @@
 #include "../sha256/sha256.h"
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -11,6 +13,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+
+#define SOCKET_COMM 1
+#define FIFO_COMM 2
 
 typedef struct {
 	long size;
@@ -98,10 +103,29 @@ int PMI_Init()
 
 	/* Si nous sommes là le socket est connecté
 	 * avec succes on peut lire et ecrire dedans */
+        
+        char comm_type;
+        if(strncmp( ip, "127.0.0.", 8) == 0)
+            comm_type = FIFO_COMM;
+        else
+            comm_type = SOCKET_COMM;
 
 	safe_write(info.fd, (char*)(&(info.jobid)), sizeof(long), 0);
 	safe_write(info.fd, (char*)(&(info.size)), sizeof(long), 0);
+        safe_write(info.fd, (char*)&comm_type, 1, 0);
 
+        if(comm_type == FIFO_COMM)
+        {
+            safe_write(info.fd, (char*)(&(info.rank)), sizeof(long), 0);
+
+            close(info.fd);
+
+            char* fifo_name = malloc(1024*sizeof(char));
+            sprintf( fifo_name, "%ld_%ld", info.jobid, info.rank);
+            mkfifo(fifo_name, 0666);
+            info.fd = open(fifo_name, O_RDWR);
+        }
+        
 	return PMI_SUCCESS;
 }
 

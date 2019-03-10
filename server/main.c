@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -8,12 +9,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "../queue/queue.h"
 #include "../hashtab/hashtab.h"
 #include "../key/key.h"
 #include "../safeIO/safeIO.h"
 
+#define SOCKET_COMM 1
+#define FIFO_COMM 2
 
 typedef struct
 {
@@ -261,6 +265,8 @@ int create_server(int argc, char** argv)
 
 int main( int argc, char ** argv )
 {
+    signal(SIGINT, exit);
+
     int listen_sock = create_server(argc, argv);
 
     /* On va maintenant accepter une connexion */
@@ -278,6 +284,7 @@ int main( int argc, char ** argv )
     long jobid, instruction, nb_processes;
     Job* job;
     int* temp_fd;
+    char comm_type;
 
     fprintf(stderr, "server online\n");
     int client_socket;
@@ -288,6 +295,23 @@ int main( int argc, char ** argv )
     	/* On accepte tous les clients et on récupére leur nouveau FD */
     	while((client_socket = accept(listen_sock, &client_info, &addr_len)) != -1)
     	{
+    	    jobid = nb_processes = 0;
+    	    safe_read(client_socket, (char*)&jobid, sizeof(long), 0);
+    	    safe_read(client_socket, (char*)&nb_processes, sizeof(long), 0);
+            safe_read(client_socket, (char*)&comm_type, 1, 0);
+
+            if(comm_type == FIFO_COMM)
+            {
+                long rank;
+                safe_read(client_socket, (char*)&rank, sizeof(long), 0);
+                close(client_socket);
+
+                char* fifo_name = malloc(1024*sizeof(char));
+                sprintf( fifo_name, "%ld_%ld", jobid, rank);
+                mkfifo(fifo_name, 0666);
+                client_socket = open(fifo_name, O_RDWR);
+            }
+
             /* On passe listen_sock en non-blocant */
             int flags = fcntl(client_socket, F_GETFL);
             if(flags == -1)
@@ -301,11 +325,6 @@ int main( int argc, char ** argv )
                 perror("get flags");
                 exit(1);
             }
-
-
-    	    jobid = nb_processes = 0;
-    	    safe_read(client_socket, (char*)&jobid, sizeof(long), 0);
-    	    safe_read(client_socket, (char*)&nb_processes, sizeof(long), 0);
 
     	    fprintf(stderr, "new connection for job %ld composed of %ld processes\n", jobid, nb_processes);
 
@@ -395,6 +414,7 @@ int main( int argc, char ** argv )
     	    perror("accept");
     	    exit(1);
     	}
+        usleep(100);
     }
 
 

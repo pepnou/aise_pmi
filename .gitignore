@@ -9,3 +9,4 @@ vim_cmd
 *.gch
 *.json
 *.swo
+*.swn

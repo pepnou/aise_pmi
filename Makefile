@@ -10,7 +10,7 @@ libpmi.so: ./libpmi/pmi.c ./safeIO/safeIO.c ./key/key.c ./sha256/sha256.c
 	$(CC) $(CFLAGS) -shared -fPIC $^ -o $@
 
 pmiserver: $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ)
+	$(CC) $(CFLAGS) -pg -o $@ $(OBJ)
 	
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -c $< -o $@
