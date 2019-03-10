@@ -77,7 +77,7 @@ void freeJob(Job* job)
     free(job);
 }
 
-void traitement(Queue jobs, int job_num, Job* job, int process_num, int fd, long instruction )
+void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, long instruction )
 {
     Key key; 
     long size = 0;
@@ -99,7 +99,7 @@ void traitement(Queue jobs, int job_num, Job* job, int process_num, int fd, long
 
             if(job->nb_processes == 0)
             {
-                Job* j = (Job*)supprElem(&jobs, job_num);
+                Job* j = (Job*)supprElem(jobs, job_num);
                 freeJob(j);
             }
             break;
@@ -328,22 +328,25 @@ int main( int argc, char ** argv )
         	    {
                         safe_read(*(int*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
                         fprintf(stderr, "%ld\n", instruction);
-                        traitement(jobs, job_num, (Job*)(temp->val), process_num, *(int*)(temp2->val), instruction );
+                        traitement(&jobs, job_num, (Job*)(temp->val), process_num, *(int*)(temp2->val), instruction );
                     }
                     if(instruction != -1)
                     {
                         temp2 = temp2->suiv;
                         process_num++;
                     }
+                    else
+                        break;
                 }
                 if(instruction != -1)
                 {
                     temp = temp->suiv;
                     job_num++;
                 }
+                else
+                    break;
     	    }
     	}
-
     	else
     	{
     	    perror("accept");

@@ -20,42 +20,7 @@ void* findInQueue(Queue list, void* val, int (*isEqual)(void*,void*))
     }
     return NULL;
 }
-/*
-void freeQueue(Queue* list, Queue freeVal)
-{
-    Queue tmp1 = *list;
-    Queue tmp2;
-    while(tmp1)
-    {
-	tmp2 = tmp1->suiv;
 
-        if(freeVal == NULL)
-            free(tmp1->val);
-        else
-        {
-            void (*f)(void*, Queue) = (void (*)(void*, Queue))(freeVal->val);
-            f(tmp1->val, freeVal->suiv);
-        }
-	
-        free(tmp1);;
-	tmp1 = tmp2;
-    }
-    *list = NULL;
-}
-
-void fakefreeQueue(Queue* list)
-{
-    Queue tmp1 = *list;
-    Queue tmp2;
-    while(tmp1)
-    {
-	tmp2 = tmp1->suiv;	
-        free(tmp1);;
-	tmp1 = tmp2;
-    }
-    *list = NULL;
-}
-*/
 void* supprElem(Queue* list, int i)
 {
     void* retval;
