@@ -157,15 +157,6 @@ int PMI_KVS_Put( char key[],  void* val, long size)
     sha256_update(&(info.sha), (unsigned char*)key, strlen(key));
     sha256_finish(&(info.sha), (unsigned char*)hashed_key);
     
-    for(int i = 0; i < strlen(key); i++)
-        printf("%d ", key[i]);
-    printf("\n");
-
-    printf("%s\n", key);
-    for(int i = 0; i < 4; i++)
-        printf("%lu ", hashed_key[i]);
-    printf("\n");
-    
     safe_write(info.fd, (char*)&size, sizeof(long), 0);
     safe_write(info.fd, (char*)hashed_key, KEY_SIZE / 8, 0);
     safe_write(info.fd, buf, size, 0);
@@ -188,14 +179,6 @@ int PMI_KVS_Get( char key[], void* val, long size)
     sha256_starts(&(info.sha));
     sha256_update(&(info.sha), (unsigned char*)key, strlen(key));
     sha256_finish(&(info.sha), (unsigned char*)hashed_key);
-    
-    for(int i = 0; i < strlen(key); i++)
-        printf("%d ", key[i]);
-    printf("\n");
-
-    for(int i = 0; i < 4; i++)
-        printf("%lu ", hashed_key[i]);
-    printf("\n");
     
     safe_write(info.fd, (char*)&size, sizeof(long), 0);
     safe_write(info.fd, (char*)hashed_key, KEY_SIZE / 8, 0);

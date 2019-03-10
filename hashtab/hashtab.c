@@ -26,7 +26,6 @@ int isKeyDataEqual(void* k, void* d)
 
 void* getValue(HashTab hash, Key key)
 {
-    fprintf(stderr, "get hash[%d]\n", modulo(key, HASH_TAB_SIZE));
     Data* data = (Data*)findInQueue(hash[modulo(key, HASH_TAB_SIZE)], (void*)key, isKeyDataEqual);
     if(data)
         return data->val;
@@ -56,7 +55,6 @@ void* setValue(HashTab* hash, Key key, void* val)
         copy_key(key, new_data->key);
         new_data->val = val;
     
-        fprintf(stderr, "set hash[%d]\n", modulo(key, HASH_TAB_SIZE));
         ajout_deb(&((*hash)[modulo(key, HASH_TAB_SIZE)]), (void*)new_data);
     }
 
