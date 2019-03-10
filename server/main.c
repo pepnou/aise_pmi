@@ -108,7 +108,7 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
         case 0: //get value
         {
             safe_read(fd, (char*)key, KEY_SIZE / 8, 0);
-            msg = getValue(job->hash_tab, key);
+            msg = (Message*)getValue(job->hash_tab, key);
 
             if(msg)
             {
@@ -132,7 +132,7 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
             }
             safe_read(fd, msg->val, msg->size, 0);
 
-            void* previous_val = setValue(job->hash_tab, key, (void*)msg);
+            void* previous_val = setValue(&(job->hash_tab), key, (void*)msg);
             if(previous_val)
                 freeMsg((Message*)previous_val);
             break;
