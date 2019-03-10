@@ -6,7 +6,7 @@ OBJ=./server/main.o ./hashtab/hashtab.o ./key/key.o ./queue/queue.o ./safeIO/saf
 
 all: $(TARGET)
 
-libpmi.so: ./libpmi/pmi.c ./safeIO/safeIO.c
+libpmi.so: ./libpmi/pmi.c ./safeIO/safeIO.c ./key/key.c ./sha256/sha256.c
 	$(CC) $(CFLAGS) -shared -fPIC $^ -o $@
 
 pmiserver: $(OBJ)

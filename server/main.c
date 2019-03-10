@@ -77,7 +77,7 @@ void freeJob(Job* job)
     free(job);
 }
 
-void traitement(Job* job, int fd, int i, long instruction )
+void traitement(Queue jobs, int job_num, Job* job, int process_num, int fd, long instruction )
 {
     Key key; 
     long size = 0;
@@ -85,10 +85,23 @@ void traitement(Job* job, int fd, int i, long instruction )
 
     switch(instruction)
     {
+        case -2: //barrier
+        {
+            
+            break;
+        }
         case -1: //processus end 
         {
-            //free(supprElem(&(job->processes), i));
-            //job->nb_processes -= 1;
+            free(supprElem(&(job->processes), process_num));
+            job->nb_processes = job->nb_processes - 1;
+
+            printf("nb_processes : %ld\n", job->nb_processes);
+
+            if(job->nb_processes == 0)
+            {
+                Job* j = (Job*)supprElem(&jobs, job_num);
+                freeJob(j);
+            }
             break;
         }
         case 0: //get key
@@ -155,8 +168,8 @@ int create_server(int argc, char** argv)
                                 &res);
     if(ret != 0)
     {
-    herror("getaddrinfo");
-    exit(1);
+        herror("getaddrinfo");
+        exit(1);
     }
 
     struct addrinfo *tmp;
@@ -183,7 +196,7 @@ int create_server(int argc, char** argv)
     ret = bind( listen_sock, tmp->ai_addr, tmp->ai_addrlen);
 
     if( ret < 0 )
-        {
+    {
         close(listen_sock);
         perror("bind");
         continue;
@@ -203,14 +216,14 @@ int create_server(int argc, char** argv)
     int flags = fcntl(listen_sock, F_GETFL);
     if(flags == -1)
     {
-    perror("get flags");
-    exit(1);
+        perror("get flags");
+        exit(1);
     }
     ret = fcntl(listen_sock, F_SETFL, flags | O_NONBLOCK);
     if(ret == -1)
     {
-    perror("get flags");
-    exit(1);
+        perror("get flags");
+        exit(1);
     }
 
     /* On commence a ecouter */
@@ -263,7 +276,7 @@ int main( int argc, char ** argv )
     	    while(temp)
     	    {
                 job = (Job*)(temp->val);
-
+                
                 if(job->jobid == jobid)
                 {
                     temp_fd = malloc(sizeof(int));
@@ -282,6 +295,8 @@ int main( int argc, char ** argv )
                     job->processes = NULL;
                     job->nb_processes = nb_processes;
                     job->barrier = 0;
+                    job->jobid = jobid;
+                    init_hashtab(&(job->hash_tab));
                     
                     ajout_deb(&jobs, (void*)job);
 
@@ -295,9 +310,10 @@ int main( int argc, char ** argv )
     	{
     	    //fprintf(stderr, "No pending connection, processing connected processes");
     	    temp = jobs;
+            int job_num = 0;
     	    while(temp)
     	    {
-                int i = 0;
+                int process_num = 0;
         	temp2 = ((Job*)(temp->val))->processes;
         	while(temp2)
         	{
@@ -312,14 +328,19 @@ int main( int argc, char ** argv )
         	    {
                         safe_read(*(int*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
                         fprintf(stderr, "%ld\n", instruction);
-                        traitement((Job*)(temp->val), *(int*)(temp2->val), i, instruction );
+                        traitement(jobs, job_num, (Job*)(temp->val), process_num, *(int*)(temp2->val), instruction );
                     }
-                    temp2 = temp2->suiv;
-
-                i++;
+                    if(instruction != -1)
+                    {
+                        temp2 = temp2->suiv;
+                        process_num++;
+                    }
                 }
-
-            temp = temp->suiv;
+                if(instruction != -1)
+                {
+                    temp = temp->suiv;
+                    job_num++;
+                }
     	    }
     	}
 

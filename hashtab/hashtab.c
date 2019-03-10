@@ -1,11 +1,18 @@
 #include "hashtab.h"
+#include <stdio.h>
 
 
-void init_hashtab(HashTab hash)
+void init_hashtab(HashTab* hash)
 {
-    hash = malloc(HASH_TAB_SIZE*sizeof(elem*));
+    *hash = malloc(HASH_TAB_SIZE*sizeof(Queue));
+    if(!(*hash))
+    {
+        perror("malloc");
+        exit(1);
+    }
+
     for(int i = 0; i < HASH_TAB_SIZE; i++)
-        hash[i] = NULL;
+        (*hash)[i] = NULL;
 }
 
 void* getValue(HashTab hash, Key key)

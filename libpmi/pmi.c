@@ -1,5 +1,7 @@
 #include "pmi.h"
 #include "../safeIO/safeIO.h"
+#include "../key/key.h"
+#include "../sha256/sha256.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -15,6 +17,7 @@ typedef struct {
 	long rank;
 	long jobid;
 	int fd;
+        sha256_context sha;
 } Info;
 
 Info info;
@@ -22,6 +25,8 @@ Info info;
 /* Initialise la bibliothèque client PMI */
 int PMI_Init()
 {
+        sha256_starts(&(info.sha));
+
 	info.size = atol(getenv("PMI_PROCESS_COUNT"));
 	info.rank = atol(getenv("PMI_RANK"));
 	info.jobid = atol(getenv("PMI_JOB_ID"));
@@ -105,8 +110,8 @@ int PMI_Init()
 /* Libère la bibliothèque client PMI */
 int PMI_Finalize(void)
 {
-	long end = -1;
-	safe_write(info.fd, (char*)&end, sizeof(long), 0);
+	long instruction = -1;
+	safe_write(info.fd, (char*)&instruction, sizeof(long), 0);
 	close(info.fd);
 	return PMI_SUCCESS;
 }
@@ -139,17 +144,25 @@ int PMI_Get_job(int *jobid)
 /* Effectue une barrière synchronisante entre les processus */
 int PMI_Barrier(void)
 {
-	return PMI_SUCCESS;
+    return PMI_SUCCESS;
 }
 
 /* Ajoute une clef et une valeur dans le stockage de la PMI */
 int PMI_KVS_Put( char key[],  void* val, long size)
 {
-    long hashed_key;
-    safe_write(info.fd, (char*)&size, sizeof(long), 0);
-    safe_write(info.fd, (char*)&hashed_key, sizeof(long), 0);
-    safe_write(info.fd, val, size, 0);
+    char* buf = (char*)val;
 
+    Key hashed_key;
+    init_key(hashed_key);
+
+    sha256_update(&(info.sha), (unsigned char*)key, size);
+    sha256_finish(&(info.sha), (unsigned char*)hashed_key);
+
+    safe_write(info.fd, (char*)&size, sizeof(long), 0);
+    safe_write(info.fd, (char*)&hashed_key, KEY_SIZE / 8, 0);
+    safe_write(info.fd, buf, size, 0);
+    
+    freeKey(hashed_key);
     return PMI_SUCCESS;
 }
 
@@ -157,15 +170,24 @@ int PMI_KVS_Put( char key[],  void* val, long size)
 /* Lit une clef depuis le stockage de la PMI */
 int PMI_KVS_Get( char key[], void* val, long size)
 {
-    size = 0;
-    long hashed_key;
+    char* buf = (char*)val;
+
+    Key hashed_key;
+    init_key(hashed_key);
+
+    sha256_update(&(info.sha), (unsigned char*)key, size);
+    sha256_finish(&(info.sha), (unsigned char*)hashed_key);
+
     safe_write(info.fd, (char*)&size, sizeof(long), 0);
-    safe_write(info.fd, (char*)&hashed_key, sizeof(long), 0);
+    safe_write(info.fd, (char*)&hashed_key, KEY_SIZE / 8, 0);
 
     safe_read(info.fd, (char*)&size, sizeof(long), 0);
+
+    freeKey(hashed_key);
+
     if(size)
     {
-        safe_read(info.fd, (char*)val, size, 0);
+        safe_read(info.fd, buf, size, 0);
         return PMI_SUCCESS;
     }
     else
