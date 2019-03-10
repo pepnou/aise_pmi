@@ -19,8 +19,8 @@ int modulo(Key key, int N)
 
     for(int i = 0; i < KEY_SIZE / 64; i++)
         res += key[i] % N;
-    
-    return res;
+
+    return res % N;
 }
 
 int isKeyEqual(void* a, void* b)

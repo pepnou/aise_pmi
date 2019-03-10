@@ -39,7 +39,7 @@ void* supprElem(Queue* list, int i)
         for(int j = 0; j < i-1; j++) //on se deplace au parent de l'élément a supprimer
             tmp = tmp->suiv;
 
-        retval = tmp->val;
+        retval = tmp->suiv->val;
 
         tmp2 = tmp->suiv->suiv;
         free(tmp->suiv);
