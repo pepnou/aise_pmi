@@ -112,24 +112,45 @@ int PMI_Init()
         {
             comm_type = 2;
             safe_write_fd(info.comm.fd, &comm_type, 1, 0);
-            safe_read_fd(info.comm.fd, (char*)&info.rank, sizeof(long), 0);
+            safe_write_fd(info.comm.fd, (char*)&info.rank, sizeof(long), 0);
 
             char* file_name = malloc(1024*sizeof(char));
             int mmap_fd = 0;
                                 
             sprintf(file_name, "./map/%ld_%ld_1", info.jobid, info.rank);
-            mmap_fd = open(file_name, O_CREAT | O_RDONLY,0666);
+            mmap_fd = open(file_name, O_CREAT | O_RDWR,0666);
+            ftruncate(mmap_fd, MAP_SIZE);
             info.comm.in = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
+            if(info.comm.in == MAP_FAILED)
+            {
+                perror("mmap");
+                exit(1);
+            }
+            memset(info.comm.in, 0, MAP_SIZE);
+            msync(info.comm.in, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
 
             sprintf(file_name, "./map/%ld_%ld_0", info.jobid, info.rank);
-            mmap_fd = open(file_name, O_CREAT | O_WRONLY,0666);
+            mmap_fd = open(file_name, O_CREAT | O_RDWR,0666);
+            ftruncate(mmap_fd, MAP_SIZE);
             info.comm.out = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
+            if(info.comm.out == MAP_FAILED)
+            {
+                perror("mmap");
+                exit(1);
+            }
+            memset(info.comm.out, 0, MAP_SIZE);
+            msync(info.comm.out, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
+
+            close(info.comm.fd);
+            info.comm.fd = -1;
         }
         else //socket
         {
             comm_type = 1;
             safe_write_fd(info.comm.fd, &comm_type, 1, 0);
         }
+
+        PMI_Barrier();
 
 	return PMI_SUCCESS;
 }

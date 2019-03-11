@@ -110,8 +110,8 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, Comm comm, 
         		Queue tmp = job->processes;
         		while(tmp)
         		{
-        			char c;
-        			safe_write((*((Comm*)tmp->val)), &c, 1, 0);
+                                char c = 1;
+        			safe_write(*((Comm*)tmp->val), &c, 1, 0);
         			tmp = tmp->suiv;
         		}
         	}
@@ -275,6 +275,7 @@ int create_server(int argc, char** argv)
 
 int main( int argc, char ** argv )
 {
+    system("mkdir -p map");
     int listen_sock = create_server(argc, argv);
 
     /* On va maintenant accepter une connexion */
@@ -339,12 +340,31 @@ int main( int argc, char ** argv )
                 int mmap_fd = 0;
                                 
                 sprintf(file_name, "./map/%ld_%ld_0", jobid, rank);
-                mmap_fd = open(file_name, O_CREAT | O_RDONLY,0666);
+                mmap_fd = open(file_name, O_CREAT | O_RDWR,0666);
+                ftruncate(mmap_fd, MAP_SIZE);
                 comm->in = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
+                if(comm->in == MAP_FAILED)
+                {
+                    perror("mmap");
+                    exit(1);
+                }
+                memset(comm->in, 0, MAP_SIZE);
+                msync(comm->in, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
 
                 sprintf(file_name, "./map/%ld_%ld_1", jobid, rank);
-                mmap_fd = open(file_name, O_CREAT | O_WRONLY,0666);
+                mmap_fd = open(file_name, O_CREAT | O_RDWR,0666);
+                ftruncate(mmap_fd, MAP_SIZE);
                 comm->out = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
+                if(comm->out == MAP_FAILED)
+                {
+                    perror("mmap");
+                    exit(1);
+                }
+                memset(comm->out, 0, MAP_SIZE);
+                msync(comm->out, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
+
+                close(comm->fd);
+                comm->fd = -1;
             }
 
     	    fprintf(stderr, "new connection for job %ld composed of %ld processes\n", jobid, nb_processes);
@@ -408,7 +428,10 @@ int main( int argc, char ** argv )
 
         	    if(red)
         	    {
-                        safe_read(*(Comm*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
+                        if(((Comm*)temp2->val)->fd == -1 && red == 1)
+                            safe_read(*(Comm*)temp2->val, (char*)&instruction, sizeof(long), 0);
+                        else
+                            safe_read(*(Comm*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
                         fprintf(stderr, "%ld\n", instruction);
                         traitement(&jobs, job_num, (Job*)(temp->val), process_num, *(Comm*)(temp2->val), instruction );
                     }

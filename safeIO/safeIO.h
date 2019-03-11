@@ -1,7 +1,7 @@
 #ifndef __SAFEIO__
 #define __SAFEIO__
 
-#define SHM_SIZE 256
+#define SHM_SIZE 4096
 
 typedef struct
 {
