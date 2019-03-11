@@ -47,7 +47,7 @@ void freeJob(Job* job)
     {
         tmp2 = tmp1->suiv;
 
-        free((int*)(tmp1->val));
+        free((Comm*)(tmp1->val));
         free(tmp1);
 
         tmp1 = tmp2;
@@ -77,7 +77,7 @@ void freeJob(Job* job)
     free(job);
 }
 
-void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, long instruction)
+void traitement(Queue* jobs, int job_num, Job* job, int process_num, Comm comm, long instruction)
 {
     Key key;
     init_key(&key);
@@ -97,7 +97,7 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
         		while(tmp)
         		{
         			char c;
-        			safe_write((*((int*)tmp->val)), &c, 1, 0);
+        			safe_write((*((Comm*)tmp->val)), &c, 1, 0);
         			tmp = tmp->suiv;
         		}
         	}
@@ -118,23 +118,23 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
             }
             break;
         }
-        case 0: //get value
+        case -3: //get value
         {
-            safe_read(fd, (char*)key, KEY_SIZE / 8, 0);
+            safe_read(comm, (char*)key, KEY_SIZE / 8, 0);
             msg = (Message*)getValue(job->hash_tab, key);
 
             if(msg)
             {
-                safe_write(fd, (char*)&(msg->size), sizeof(long), 0);
-                safe_write(fd, (char*)(msg->val), msg->size, 0);
+                safe_write(comm, (char*)&(msg->size), sizeof(long), 0);
+                safe_write(comm, (char*)(msg->val), msg->size, 0);
             }
             else
-                safe_write(fd, (char*)&size, sizeof(long), 0);
+                safe_write(comm, (char*)&size, sizeof(long), 0);
             break;
         }
         default: //set value of size 'instruction'
         {
-            safe_read(fd, (char*)key, KEY_SIZE / 8, 0);
+            safe_read(comm, (char*)key, KEY_SIZE / 8, 0);
             msg = malloc(sizeof(Message));
             msg->size = instruction;
             msg->val = malloc(msg->size * sizeof(char));
@@ -143,7 +143,7 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, int fd, lon
                 perror("malloc");
                 exit(1);
             }
-            safe_read(fd, msg->val, msg->size, 0);
+            safe_read(comm, msg->val, msg->size, 0);
 
             void* previous_val = setValue(&(job->hash_tab), key, (void*)msg);
             if(previous_val)
@@ -277,7 +277,9 @@ int main( int argc, char ** argv )
     Queue temp2 = NULL;
     long jobid, instruction, nb_processes;
     Job* job;
-    int* temp_fd;
+    //int* temp_fd;
+    Comm* comm;
+    char comm_type;
 
     fprintf(stderr, "server online\n");
     int client_socket;
@@ -288,6 +290,8 @@ int main( int argc, char ** argv )
     	/* On accepte tous les clients et on récupére leur nouveau FD */
     	while((client_socket = accept(listen_sock, &client_info, &addr_len)) != -1)
     	{
+            comm = malloc(sizeof(Comm));
+
             /* On passe listen_sock en non-blocant */
             int flags = fcntl(client_socket, F_GETFL);
             if(flags == -1)
@@ -304,8 +308,18 @@ int main( int argc, char ** argv )
 
 
     	    jobid = nb_processes = 0;
-    	    safe_read(client_socket, (char*)&jobid, sizeof(long), 0);
-    	    safe_read(client_socket, (char*)&nb_processes, sizeof(long), 0);
+    	    safe_read_fd(client_socket, (char*)&jobid, sizeof(long), 0);
+    	    safe_read_fd(client_socket, (char*)&nb_processes, sizeof(long), 0);
+            safe_read_fd(client_socket, &comm_type, 1, 0);
+
+            if(comm_type == 1)
+            {
+                comm->fd = client_socket;
+            }
+            else
+            {
+            
+            }
 
     	    fprintf(stderr, "new connection for job %ld composed of %ld processes\n", jobid, nb_processes);
 
@@ -316,9 +330,9 @@ int main( int argc, char ** argv )
                 
                 if(job->jobid == jobid)
                 {
-                    temp_fd = malloc(sizeof(int));
-                    *temp_fd = client_socket;
-                    ajout_deb(&(job->processes), (void*)temp_fd);
+                    /*temp_fd = malloc(sizeof(int));
+                    *temp_fd = client_socket;*/
+                    ajout_deb(&(job->processes), (void*)comm);
     	    
                     jobid = -1;
                     break;
@@ -337,9 +351,9 @@ int main( int argc, char ** argv )
                     
                     ajout_deb(&jobs, (void*)job);
 
-                    temp_fd = malloc(sizeof(int));
-                    *temp_fd = client_socket;
-                    ajout_deb(&(job->processes), (void*)temp_fd);
+                    /*temp_fd = malloc(sizeof(int));
+                    *temp_fd = client_socket;*/
+                    ajout_deb(&(job->processes), (void*)comm);
     	    }
     	}
 
@@ -353,8 +367,8 @@ int main( int argc, char ** argv )
                 int process_num = 0;
         	temp2 = ((Job*)(temp->val))->processes;
         	while(temp2)
-        	{
-        	    int red = read(*(int*)(temp2->val), (void*)&instruction, sizeof(long));
+        	{ 
+        	    int red = comm_read(*(Comm*)(temp2->val), (void*)&instruction, sizeof(long));
                     if(red == -1)
                     {
                         if(errno == EAGAIN || errno == EWOULDBLOCK)
@@ -368,9 +382,9 @@ int main( int argc, char ** argv )
 
         	    if(red)
         	    {
-                        safe_read(*(int*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
+                        safe_read(*(Comm*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
                         fprintf(stderr, "%ld\n", instruction);
-                        traitement(&jobs, job_num, (Job*)(temp->val), process_num, *(int*)(temp2->val), instruction );
+                        traitement(&jobs, job_num, (Job*)(temp->val), process_num, *(Comm*)(temp2->val), instruction );
                     }
                     if(instruction != -1)
                     {

@@ -1,10 +1,62 @@
+#include "safeIO.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 
 
-void safe_read(int fd, char* buf, int size, int offset)
+int comm_read(Comm comm, char* buf, int size)
+{
+    if(comm.fd == -1)
+    {
+        if(*(long*)comm.in == 0)
+            return 0;
+        else
+            return 1;
+    }
+    else
+    {
+        int red = read(comm.fd, buf, size);
+        if(red == -1)
+        {
+            if(errno == EAGAIN || errno == EWOULDBLOCK)
+                red = 0;
+            else
+            {
+                perror("read");
+                exit(1);
+            }
+        }
+        return red;
+    }
+}
+
+void safe_read(Comm comm, char* buf, int size, int offset)
+{
+    if(comm.fd == -1)
+    {
+        safe_read_shm(comm.in, buf, size);
+    }
+    else
+    {
+        safe_read_fd(comm.fd, buf, size, offset);
+    }
+}
+
+void safe_write(Comm comm, char* buf, int size, int offset)
+{
+    if(comm.fd == -1)
+    {
+        safe_write_shm(comm.out, buf, size);
+    }
+    else
+    {
+        safe_write_fd(comm.fd, buf, size, offset);
+    }
+}
+
+void safe_read_fd(int fd, char* buf, int size, int offset)
 {
     int red = read(fd, &(buf[offset]), size);
     
@@ -16,13 +68,13 @@ void safe_read(int fd, char* buf, int size, int offset)
             exit(1);
         }
         else
-            safe_read(fd, buf, size, offset);
+            safe_read_fd(fd, buf, size, offset);
     }
     else if(size - red)
-        safe_read(fd, buf, size - red, offset + red);
+        safe_read_fd(fd, buf, size - red, offset + red);
 }
 
-void safe_write(int fd, char* buf, int size, int offset)
+void safe_write_fd(int fd, char* buf, int size, int offset)
 {
     int wrote = write(fd, &(buf[offset]), size);
 
@@ -34,8 +86,21 @@ void safe_write(int fd, char* buf, int size, int offset)
             exit(1);
         }
         else
-            safe_write(fd, buf, size, offset);
+            safe_write_fd(fd, buf, size, offset);
     }
     else if(size - wrote)
-        safe_write(fd, buf, size - wrote, offset + wrote);
+        safe_write_fd(fd, buf, size - wrote, offset + wrote);
+}
+
+void safe_read_shm(char* out, char* buf, int size)
+{
+    while(*(long*)out == 0);
+    memcpy(buf, out, size);
+    memset(out, 0, SHM_SIZE);
+}
+
+void safe_write_shm(char* in, char* buf, int size)
+{
+    while(*(long*)in == 0);
+    memcpy(in, buf, size);
 }

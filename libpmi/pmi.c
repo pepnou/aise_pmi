@@ -176,7 +176,7 @@ int PMI_KVS_Get( char key[], void* val, long size)
 {
     char* buf = (char*)val;
     
-    size = 0;
+    size = -3;
 
     Key hashed_key;
     init_key(&hashed_key);
