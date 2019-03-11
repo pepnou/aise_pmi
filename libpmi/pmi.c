@@ -4,6 +4,7 @@
 #include "../sha256/sha256.h"
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/mman.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -11,6 +12,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
+
+#define MAP_SIZE 4096
 
 typedef struct {
 	long size;
@@ -104,16 +108,28 @@ int PMI_Init()
         
         char comm_type;
 
-        /*if(!strncmp(ip, "127.0.0.", 8)) //shm
+        if(!strncmp(ip, "127.0.0.", 8)) //shm
         {
             comm_type = 2;
             safe_write_fd(info.comm.fd, &comm_type, 1, 0);
+            safe_read_fd(info.comm.fd, (char*)&info.rank, sizeof(long), 0);
+
+            char* file_name = malloc(1024*sizeof(char));
+            int mmap_fd = 0;
+                                
+            sprintf(file_name, "./map/%ld_%ld_1", info.jobid, info.rank);
+            mmap_fd = open(file_name, O_CREAT | O_RDONLY,0666);
+            info.comm.in = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
+
+            sprintf(file_name, "./map/%ld_%ld_0", info.jobid, info.rank);
+            mmap_fd = open(file_name, O_CREAT | O_WRONLY,0666);
+            info.comm.out = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
         }
         else //socket
-        {*/
+        {
             comm_type = 1;
             safe_write_fd(info.comm.fd, &comm_type, 1, 0);
-        //}
+        }
 
 	return PMI_SUCCESS;
 }

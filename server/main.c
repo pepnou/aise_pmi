@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/mman.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -14,6 +15,7 @@
 #include "../key/key.h"
 #include "../safeIO/safeIO.h"
 
+#define MAP_SIZE 4096
 
 typedef struct
 {
@@ -46,6 +48,18 @@ void freeJob(Job* job)
     while(tmp1)
     {
         tmp2 = tmp1->suiv;
+        
+        Comm* comm = (Comm*)tmp1->val;
+        
+        if(comm->fd == -1)
+        {
+            close(comm->fd);
+        }
+        else
+        {
+            munmap(comm->in, MAP_SIZE);
+            munmap(comm->out, MAP_SIZE);
+        }
 
         free((Comm*)(tmp1->val));
         free(tmp1);
@@ -318,7 +332,19 @@ int main( int argc, char ** argv )
             }
             else
             {
-            
+                long rank;
+                safe_read_fd(client_socket, (char*)&rank, sizeof(long), 0);
+
+                char* file_name = malloc(1024*sizeof(char));
+                int mmap_fd = 0;
+                                
+                sprintf(file_name, "./map/%ld_%ld_0", jobid, rank);
+                mmap_fd = open(file_name, O_CREAT | O_RDONLY,0666);
+                comm->in = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
+
+                sprintf(file_name, "./map/%ld_%ld_1", jobid, rank);
+                mmap_fd = open(file_name, O_CREAT | O_WRONLY,0666);
+                comm->out = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
             }
 
     	    fprintf(stderr, "new connection for job %ld composed of %ld processes\n", jobid, nb_processes);

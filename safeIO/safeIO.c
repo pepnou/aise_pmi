@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/mman.h>
 
 
 int comm_read(Comm comm, char* buf, int size)
@@ -97,10 +98,12 @@ void safe_read_shm(char* out, char* buf, int size)
     while(*(long*)out == 0);
     memcpy(buf, out, size);
     memset(out, 0, SHM_SIZE);
+    msync( out, size, MS_SYNC | MS_INVALIDATE);
 }
 
 void safe_write_shm(char* in, char* buf, int size)
 {
-    while(*(long*)in == 0);
+    while(*(long*)in != 0);
     memcpy(in, buf, size);
+    msync( in, size, MS_SYNC | MS_INVALIDATE);
 }
