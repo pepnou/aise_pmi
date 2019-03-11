@@ -103,6 +103,8 @@ int PMI_Init()
 
 	safe_write_fd(info.comm.fd, (char*)(&(info.jobid)), sizeof(long), 0);
 	safe_write_fd(info.comm.fd, (char*)(&(info.size)), sizeof(long), 0);
+
+
         
         char comm_type;
 

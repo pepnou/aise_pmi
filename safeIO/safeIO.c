@@ -13,7 +13,7 @@ int comm_read(Comm comm, char* buf, int size)
     {
         int offset;
 
-        if(comm.in_offset + size + 1 >= SHM_SIZE)
+        if(comm.in_offset + size + 1 > SHM_SIZE)
             offset = 0;
         else
             offset = comm.in_offset;
@@ -53,14 +53,14 @@ void safe_read(Comm* comm, char* buf, int size, int offset)
 {
     if(comm->fd == -1)
     {
-        if(comm->in_offset + size + 1 >= SHM_SIZE)
+        if(comm->in_offset + size + 1 > SHM_SIZE)
             offset = 0;
         else
             offset = comm->in_offset;
 
         safe_read_shm(comm->in, buf, size, offset);
 
-        comm->in_offset = (comm->in_offset + size + 1) % (SHM_SIZE - 1);
+        //comm->in_offset = (comm->in_offset + size + 1) % (SHM_SIZE - 1);
     }
     else
     {
@@ -72,11 +72,12 @@ void safe_write(Comm* comm, char* buf, int size, int offset)
 {
     if(comm->fd == -1)
     {
-        if(comm->out_offset + size + 1 >= SHM_SIZE)
+        if(comm->out_offset + size + 1 > SHM_SIZE)
         {
-            /*char* cmp = malloc(SHM_SIZE - offset);
-            memset(cmp, 0, SHM_SIZE - offset);
-            while(!memcmp(&(comm->out[offset]), cmp, SHM_SIZE - offset));*/
+            char* cmp = malloc(SHM_SIZE - comm->out_offset);
+            memset(cmp, 0, SHM_SIZE - comm->out_offset);
+            while(memcmp(&(comm->out[comm->out_offset]), cmp, SHM_SIZE - comm->out_offset));
+            free(cmp);
 
             offset = 0;
         }
@@ -85,7 +86,7 @@ void safe_write(Comm* comm, char* buf, int size, int offset)
 
         safe_write_shm(comm->out, buf, size, offset);
 
-        comm->out_offset = (comm->out_offset + size + 1) % (SHM_SIZE - 1);
+        //comm->out_offset = (comm->out_offset + size + 1) % (SHM_SIZE - 1);
     }
     else
     {
@@ -140,6 +141,8 @@ void safe_read_shm(char* in, char* buf, int size, int offset)
     while(!memcmp(cmp, &(in[offset + 1]), size));
     
     free(cmp);
+
+    //fprintf(stderr, "%d\n", offset);
  
     memcpy(buf, &(in[offset + 1]), size);
     memset(&(in[offset]), 0, size + 1);
@@ -154,6 +157,8 @@ void safe_write_shm(char* out, char* buf, int size, int offset)
     while(memcmp(cmp, &(out[offset]), size + 1));
 
     free(cmp);
+
+    //fprintf(stderr, "%d\n", offset);
     
     memset(&(out[offset]), 1, 1);
 

@@ -418,16 +418,6 @@ int main( int argc, char ** argv )
         	while(temp2)
         	{ 
         	    int red = comm_read(*(Comm*)(temp2->val), (void*)&instruction, sizeof(long));
-                    /*if(red == -1)
-                    {
-                        if(errno == EAGAIN || errno == EWOULDBLOCK)
-                            red = 0;
-                        else
-                        {
-                            perror("read");
-                            exit(1);
-                        }
-                    }*/
 
         	    if(red)
         	    {
@@ -436,8 +426,8 @@ int main( int argc, char ** argv )
                         else
                             safe_read((Comm*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
                         fprintf(stderr, "%ld\n", instruction);
-                        if(instruction > 10)
-                            exit(2);
+                        //if(instruction > 10)
+                        //    exit(2);
                         traitement(&jobs, job_num, (Job*)(temp->val), process_num, (Comm*)temp2->val, instruction );
                     }
                     if(instruction != -1)

@@ -13,9 +13,9 @@ double get_time()
 	return (double)val.tv_sec + 1e-6 * val.tv_usec;
 }
 
-//#define NUM 16384
+#define NUM 16384
 
-#define NUM 512
+//#define NUM 512
 
 int main(int argc, char ** argv )
 {
@@ -97,6 +97,7 @@ int main(int argc, char ** argv )
 			if(strcmp(val, retval))
 			{
 				fprintf(stderr, "Error in data %s instead of %s\n", retval, val);
+                                PMI_Finalize();
 				return 1;
 			}
 		}
