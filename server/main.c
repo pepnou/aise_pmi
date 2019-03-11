@@ -341,27 +341,27 @@ int main( int argc, char ** argv )
                                 
                 sprintf(file_name, "./map/%ld_%ld_0", jobid, rank);
                 mmap_fd = open(file_name, O_CREAT | O_RDWR,0666);
-                ftruncate(mmap_fd, MAP_SIZE);
+                //ftruncate(mmap_fd, MAP_SIZE);
                 comm->in = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
                 if(comm->in == MAP_FAILED)
                 {
                     perror("mmap");
                     exit(1);
                 }
-                memset(comm->in, 0, MAP_SIZE);
-                msync(comm->in, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
+                //memset(comm->in, 0, MAP_SIZE);
+                //msync(comm->in, MAP_SIZE, MS_SYNC | MS_INVALIDATE);*/
 
                 sprintf(file_name, "./map/%ld_%ld_1", jobid, rank);
                 mmap_fd = open(file_name, O_CREAT | O_RDWR,0666);
-                ftruncate(mmap_fd, MAP_SIZE);
+                //ftruncate(mmap_fd, MAP_SIZE);
                 comm->out = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
                 if(comm->out == MAP_FAILED)
                 {
                     perror("mmap");
                     exit(1);
                 }
-                memset(comm->out, 0, MAP_SIZE);
-                msync(comm->out, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
+                //memset(comm->out, 0, MAP_SIZE);
+                //msync(comm->out, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
 
                 comm->in_offset = 0;
                 comm->out_offset = 0;
@@ -431,7 +431,7 @@ int main( int argc, char ** argv )
 
         	    if(red)
         	    {
-                        if(((Comm*)temp2->val)->fd == -1 && red == 1)
+                        if(((Comm*)temp2->val)->fd == -1)
                             safe_read((Comm*)temp2->val, (char*)&instruction, sizeof(long), 0);
                         else
                             safe_read((Comm*)temp2->val, (char*)&instruction, sizeof(long) - red, red);

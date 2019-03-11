@@ -14,8 +14,6 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#define MAP_SIZE 4096
-
 typedef struct {
 	long size;
 	long rank;
@@ -110,39 +108,39 @@ int PMI_Init()
 
         if(!strncmp(ip, "127.0.0.", 8)) //shm
         {
-            comm_type = 2;
-            safe_write_fd(info.comm.fd, &comm_type, 1, 0);
-            safe_write_fd(info.comm.fd, (char*)&info.rank, sizeof(long), 0);
-
             char* file_name = malloc(1024*sizeof(char));
             int mmap_fd = 0;
                                 
             sprintf(file_name, "./map/%ld_%ld_1", info.jobid, info.rank);
             mmap_fd = open(file_name, O_CREAT | O_RDWR,0666);
-            ftruncate(mmap_fd, MAP_SIZE);
-            info.comm.in = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
+            ftruncate(mmap_fd, SHM_SIZE);
+            info.comm.in = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
             if(info.comm.in == MAP_FAILED)
             {
                 perror("mmap");
                 exit(1);
             }
-            memset(info.comm.in, 0, MAP_SIZE);
-            msync(info.comm.in, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
+            memset(info.comm.in, 0, SHM_SIZE);
+            msync(info.comm.in, SHM_SIZE, MS_SYNC | MS_INVALIDATE);
 
             sprintf(file_name, "./map/%ld_%ld_0", info.jobid, info.rank);
             mmap_fd = open(file_name, O_CREAT | O_RDWR,0666);
-            ftruncate(mmap_fd, MAP_SIZE);
-            info.comm.out = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
+            ftruncate(mmap_fd, SHM_SIZE);
+            info.comm.out = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
             if(info.comm.out == MAP_FAILED)
             {
                 perror("mmap");
                 exit(1);
             }
-            memset(info.comm.out, 0, MAP_SIZE);
-            msync(info.comm.out, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
+            memset(info.comm.out, 0, SHM_SIZE);
+            msync(info.comm.out, SHM_SIZE, MS_SYNC | MS_INVALIDATE);
 
             info.comm.in_offset = 0;
             info.comm.out_offset = 0;
+
+            comm_type = 2;
+            safe_write_fd(info.comm.fd, &comm_type, 1, 0);
+            safe_write_fd(info.comm.fd, (char*)&info.rank, sizeof(long), 0);
 
             close(info.comm.fd);
             info.comm.fd = -1;
