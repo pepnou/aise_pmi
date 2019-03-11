@@ -24,7 +24,10 @@ A4
 B5
 B7
 B8
-B9 (lors des test d'utilisation en local, écriture de clé : ~ 3 usec et lecture : ~ 100 usec)
+B9
+(lors des test d'utilisation en local avec sockets , écriture de clé : ~ 3,47 usec et lecture : ~ 89 822 usec)
+(lors des test d'utilisation en local avec shm, écriture de clé : 44 450 usec et lecture : 48 249 usec)
+(Nous avons essayer de mettre en place une politique de lecture écriture circulaire lors de l'implementation du segment shm révélant des tests en lecture et écriture de clé atteingnant ~100 usec mais, cette implémentation n'etant pas complètement fonctionel nous ne l'utilisons pas dans le programme final)
 C11 :
 - amélioration de performance en passant par une table de hachage pour les clées
 - support multijob et multiprocess
@@ -40,7 +43,7 @@ C11 :
 
 
 
-SUJER :
+SUJET :
 
 
 
