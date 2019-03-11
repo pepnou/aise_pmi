@@ -369,7 +369,7 @@ int main( int argc, char ** argv )
         	while(temp2)
         	{ 
         	    int red = comm_read(*(Comm*)(temp2->val), (void*)&instruction, sizeof(long));
-                    if(red == -1)
+                    /*if(red == -1)
                     {
                         if(errno == EAGAIN || errno == EWOULDBLOCK)
                             red = 0;
@@ -378,7 +378,7 @@ int main( int argc, char ** argv )
                             perror("read");
                             exit(1);
                         }
-                    }
+                    }*/
 
         	    if(red)
         	    {

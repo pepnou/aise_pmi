@@ -16,7 +16,7 @@ typedef struct {
 	long size;
 	long rank;
 	long jobid;
-	int fd;
+	Comm comm;
         sha256_context sha;
 } Info;
 
@@ -61,26 +61,26 @@ int PMI_Init()
 	}
 
 	struct addrinfo *tmp;
-	info.fd = -1;
+	info.comm.fd = -1;
 	int connected = 0;
 
 	/* On parcours les alternative recues */
 	for (tmp = res; tmp != NULL; tmp = tmp->ai_next) {
 		/* On crée un socket en suivant la configuration
 		 * renvoyéee par getaddrinfo */
-		info.fd = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
+		info.comm.fd = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
 
-		if( info.fd < 0) {
+		if( info.comm.fd < 0) {
 			perror("sock");
 			continue;
 		}
 
 		/* On tente de le connecter à l'adresse renvoyée par
 		 * getaddrinfo et configurée par argv[1] et argv[2] */
-		int ret = connect( info.fd, tmp->ai_addr, tmp->ai_addrlen);
+		int ret = connect( info.comm.fd, tmp->ai_addr, tmp->ai_addrlen);
 
 		if( ret < 0 ) {
-			close(info.fd);
+			close(info.comm.fd);
 			perror("connect");
 			continue;
 		}
@@ -99,8 +99,21 @@ int PMI_Init()
 	/* Si nous sommes là le socket est connecté
 	 * avec succes on peut lire et ecrire dedans */
 
-	safe_write(info.fd, (char*)(&(info.jobid)), sizeof(long), 0);
-	safe_write(info.fd, (char*)(&(info.size)), sizeof(long), 0);
+	safe_write_fd(info.comm.fd, (char*)(&(info.jobid)), sizeof(long), 0);
+	safe_write_fd(info.comm.fd, (char*)(&(info.size)), sizeof(long), 0);
+        
+        char comm_type;
+
+        /*if(!strncmp(ip, "127.0.0.", 8)) //shm
+        {
+            comm_type = 2;
+            safe_write_fd(info.comm.fd, &comm_type, 1, 0);
+        }
+        else //socket
+        {*/
+            comm_type = 1;
+            safe_write_fd(info.comm.fd, &comm_type, 1, 0);
+        //}
 
 	return PMI_SUCCESS;
 }
@@ -109,8 +122,8 @@ int PMI_Init()
 int PMI_Finalize(void)
 {
 	long instruction = -1;
-	safe_write(info.fd, (char*)&instruction, sizeof(long), 0);
-	close(info.fd);
+	safe_write(info.comm, (char*)&instruction, sizeof(long), 0);
+	//close(info.fd);
 	return PMI_SUCCESS;
 }
 
@@ -143,9 +156,9 @@ int PMI_Get_job(int *jobid)
 int PMI_Barrier()
 {
 	long instruction = -2;
-	safe_write(info.fd, (char*)&instruction, sizeof(long), 0);
+	safe_write(info.comm, (char*)&instruction, sizeof(long), 0);
 	char c;
-	safe_read(info.fd, &c, 1, 0);
+	safe_read(info.comm, &c, 1, 0);
 
     return PMI_SUCCESS;
 }
@@ -162,9 +175,9 @@ int PMI_KVS_Put( char key[],  void* val, long size)
     sha256_update(&(info.sha), (unsigned char*)key, strlen(key));
     sha256_finish(&(info.sha), (unsigned char*)hashed_key);
     
-    safe_write(info.fd, (char*)&size, sizeof(long), 0);
-    safe_write(info.fd, (char*)hashed_key, KEY_SIZE / 8, 0);
-    safe_write(info.fd, buf, size, 0);
+    safe_write(info.comm, (char*)&size, sizeof(long), 0);
+    safe_write(info.comm, (char*)hashed_key, KEY_SIZE / 8, 0);
+    safe_write(info.comm, buf, size, 0);
     
     freeKey(hashed_key);
     return PMI_SUCCESS;
@@ -185,16 +198,16 @@ int PMI_KVS_Get( char key[], void* val, long size)
     sha256_update(&(info.sha), (unsigned char*)key, strlen(key));
     sha256_finish(&(info.sha), (unsigned char*)hashed_key);
     
-    safe_write(info.fd, (char*)&size, sizeof(long), 0);
-    safe_write(info.fd, (char*)hashed_key, KEY_SIZE / 8, 0);
+    safe_write(info.comm, (char*)&size, sizeof(long), 0);
+    safe_write(info.comm, (char*)hashed_key, KEY_SIZE / 8, 0);
 
-    safe_read(info.fd, (char*)&size, sizeof(long), 0);
+    safe_read(info.comm, (char*)&size, sizeof(long), 0);
 
     freeKey(hashed_key);
 
     if(size)
     {
-        safe_read(info.fd, buf, size, 0);
+        safe_read(info.comm, buf, size, 0);
         return PMI_SUCCESS;
     }
     else

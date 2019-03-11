@@ -10,7 +10,7 @@ typedef struct
     char* out;
 } Comm;
 
-int comm_read(Comm comm);
+int comm_read(Comm comm, char* buf, int size);
 
 void safe_read(Comm comm, char* buf, int size, int offset);
 void safe_write(Comm comm, char* buf, int size, int offset);
