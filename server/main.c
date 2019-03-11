@@ -91,7 +91,7 @@ void freeJob(Job* job)
     free(job);
 }
 
-void traitement(Queue* jobs, int job_num, Job* job, int process_num, Comm comm, long instruction)
+void traitement(Queue* jobs, int job_num, Job* job, int process_num, Comm* comm, long instruction)
 {
     Key key;
     init_key(&key);
@@ -111,7 +111,7 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, Comm comm, 
         		while(tmp)
         		{
                                 char c = 1;
-        			safe_write(*((Comm*)tmp->val), &c, 1, 0);
+        			safe_write((Comm*)tmp->val, &c, 1, 0);
         			tmp = tmp->suiv;
         		}
         	}
@@ -363,6 +363,9 @@ int main( int argc, char ** argv )
                 memset(comm->out, 0, MAP_SIZE);
                 msync(comm->out, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
 
+                comm->in_offset = 0;
+                comm->out_offset = 0;
+
                 close(comm->fd);
                 comm->fd = -1;
             }
@@ -429,11 +432,11 @@ int main( int argc, char ** argv )
         	    if(red)
         	    {
                         if(((Comm*)temp2->val)->fd == -1 && red == 1)
-                            safe_read(*(Comm*)temp2->val, (char*)&instruction, sizeof(long), 0);
+                            safe_read((Comm*)temp2->val, (char*)&instruction, sizeof(long), 0);
                         else
-                            safe_read(*(Comm*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
+                            safe_read((Comm*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
                         fprintf(stderr, "%ld\n", instruction);
-                        traitement(&jobs, job_num, (Job*)(temp->val), process_num, *(Comm*)(temp2->val), instruction );
+                        traitement(&jobs, job_num, (Job*)(temp->val), process_num, (Comm*)temp2->val, instruction );
                     }
                     if(instruction != -1)
                     {

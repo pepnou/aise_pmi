@@ -11,10 +11,25 @@ int comm_read(Comm comm, char* buf, int size)
 {
     if(comm.fd == -1)
     {
-        if(*(long*)comm.in == 0)
-            return 0;
+        int offset;
+        if(comm.in_offset + size >= SHM_SIZE)
+            offset = 0;
         else
+            offset = comm.in_offset;
+
+        char* cmp =  malloc(size);
+        memset(cmp, 0, size);
+        
+        if(!memcmp(cmp, &(comm.in[offset]), size))
+        {
+            free(cmp);
+            return 0;
+        }
+        else
+        {
+            free(cmp);
             return 1;
+        }
     }
     else
     {
@@ -33,27 +48,39 @@ int comm_read(Comm comm, char* buf, int size)
     }
 }
 
-void safe_read(Comm comm, char* buf, int size, int offset)
+void safe_read(Comm* comm, char* buf, int size, int offset)
 {
-    if(comm.fd == -1)
+    if(comm->fd == -1)
     {
-        safe_read_shm(comm.in, buf, size);
+        if(comm->in_offset + size >= SHM_SIZE)
+            offset = 0;
+        else
+            offset = comm->in_offset;
+        safe_read_shm(comm->in, buf, size, offset);
+
+        comm->in_offset = (comm->in_offset + size) % SHM_SIZE;
     }
     else
     {
-        safe_read_fd(comm.fd, buf, size, offset);
+        safe_read_fd(comm->fd, buf, size, offset);
     }
 }
 
-void safe_write(Comm comm, char* buf, int size, int offset)
+void safe_write(Comm* comm, char* buf, int size, int offset)
 {
-    if(comm.fd == -1)
+    if(comm->fd == -1)
     {
-        safe_write_shm(comm.out, buf, size);
+        if(comm->out_offset + size >= SHM_SIZE)
+            offset = 0;
+        else
+            offset = comm->in_offset;
+        safe_write_shm(comm->out, buf, size, offset);
+
+        comm->out_offset = (comm->out_offset + size) % SHM_SIZE;
     }
     else
     {
-        safe_write_fd(comm.fd, buf, size, offset);
+        safe_write_fd(comm->fd, buf, size, offset);
     }
 }
 
@@ -93,17 +120,29 @@ void safe_write_fd(int fd, char* buf, int size, int offset)
         safe_write_fd(fd, buf, size - wrote, offset + wrote);
 }
 
-void safe_read_shm(char* in, char* buf, int size)
+void safe_read_shm(char* in, char* buf, int size, int offset)
 {
-    while(*(long*)in == 0);
-    memcpy(buf, in, size);
-    memset(in, 0, size);
+    char* cmp =  malloc(size);
+    memset(cmp, 0, size);
+
+    while(!memcmp(cmp, &(in[offset]), size));
+    
+    free(cmp);
+
+    memcpy(buf, &(in[offset]), size);
+    memset(&(in[offset]), 0, size);
     msync(in, size, MS_SYNC | MS_INVALIDATE);
 }
 
-void safe_write_shm(char* out, char* buf, int size)
+void safe_write_shm(char* out, char* buf, int size, int offset)
 {
-    while(*(long*)out != 0);
-    memcpy(out, buf, size);
+    char* cmp =  malloc(size);
+    memset(cmp, 0, size);
+
+    while(memcmp(cmp, &(out[offset]), size));
+
+    free(cmp);
+
+    memcpy(&(out[offset]), buf, size);
     msync(out, size, MS_SYNC | MS_INVALIDATE);
 }

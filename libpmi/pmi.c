@@ -141,6 +141,9 @@ int PMI_Init()
             memset(info.comm.out, 0, MAP_SIZE);
             msync(info.comm.out, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
 
+            info.comm.in_offset = 0;
+            info.comm.out_offset = 0;
+
             close(info.comm.fd);
             info.comm.fd = -1;
         }
@@ -159,7 +162,7 @@ int PMI_Init()
 int PMI_Finalize(void)
 {
 	long instruction = -1;
-	safe_write(info.comm, (char*)&instruction, sizeof(long), 0);
+	safe_write(&(info.comm), (char*)&instruction, sizeof(long), 0);
 	//close(info.fd);
 	return PMI_SUCCESS;
 }
@@ -193,9 +196,9 @@ int PMI_Get_job(int *jobid)
 int PMI_Barrier()
 {
 	long instruction = -2;
-	safe_write(info.comm, (char*)&instruction, sizeof(long), 0);
+	safe_write(&(info.comm), (char*)&instruction, sizeof(long), 0);
 	char c;
-	safe_read(info.comm, &c, 1, 0);
+	safe_read(&(info.comm), &c, 1, 0);
 
     return PMI_SUCCESS;
 }
@@ -212,9 +215,9 @@ int PMI_KVS_Put( char key[],  void* val, long size)
     sha256_update(&(info.sha), (unsigned char*)key, strlen(key));
     sha256_finish(&(info.sha), (unsigned char*)hashed_key);
     
-    safe_write(info.comm, (char*)&size, sizeof(long), 0);
-    safe_write(info.comm, (char*)hashed_key, KEY_SIZE / 8, 0);
-    safe_write(info.comm, buf, size, 0);
+    safe_write(&(info.comm), (char*)&size, sizeof(long), 0);
+    safe_write(&(info.comm), (char*)hashed_key, KEY_SIZE / 8, 0);
+    safe_write(&(info.comm), buf, size, 0);
     
     freeKey(hashed_key);
     return PMI_SUCCESS;
@@ -235,16 +238,16 @@ int PMI_KVS_Get( char key[], void* val, long size)
     sha256_update(&(info.sha), (unsigned char*)key, strlen(key));
     sha256_finish(&(info.sha), (unsigned char*)hashed_key);
     
-    safe_write(info.comm, (char*)&size, sizeof(long), 0);
-    safe_write(info.comm, (char*)hashed_key, KEY_SIZE / 8, 0);
+    safe_write(&(info.comm), (char*)&size, sizeof(long), 0);
+    safe_write(&(info.comm), (char*)hashed_key, KEY_SIZE / 8, 0);
 
-    safe_read(info.comm, (char*)&size, sizeof(long), 0);
+    safe_read(&(info.comm), (char*)&size, sizeof(long), 0);
 
     freeKey(hashed_key);
 
     if(size)
     {
-        safe_read(info.comm, buf, size, 0);
+        safe_read(&(info.comm), buf, size, 0);
         return PMI_SUCCESS;
     }
     else
