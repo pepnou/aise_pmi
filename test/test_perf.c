@@ -13,7 +13,9 @@ double get_time()
 	return (double)val.tv_sec + 1e-6 * val.tv_usec;
 }
 
-#define NUM 16384
+//#define NUM 16384
+
+#define NUM 512
 
 int main(int argc, char ** argv )
 {
@@ -63,7 +65,7 @@ int main(int argc, char ** argv )
 			snprintf(val, PMI_STRING_LEN, "%d", i);
 			start = get_time();
 			PMI_KVS_Put(key, val, strlen(val));
-			end = get_time();
+                        end = get_time();
 			time += (end - start);
 
 		}
