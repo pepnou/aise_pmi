@@ -197,8 +197,8 @@ int PMI_Barrier()
 {
 	long instruction = -2;
 	safe_write(&(info.comm), (char*)&instruction, sizeof(long), 0);
-	char c;
-	safe_read(&(info.comm), &c, 1, 0);
+	long c;
+	safe_read(&(info.comm), (char*)&c, sizeof(long), 0);
 
     return PMI_SUCCESS;
 }

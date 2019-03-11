@@ -110,8 +110,8 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, Comm* comm,
         		Queue tmp = job->processes;
         		while(tmp)
         		{
-                                char c = 1;
-        			safe_write((Comm*)tmp->val, &c, 1, 0);
+                                long c = 1;
+        			safe_write((Comm*)tmp->val, (char*)&c, sizeof(long), 0);
         			tmp = tmp->suiv;
         		}
         	}

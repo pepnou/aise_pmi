@@ -56,6 +56,7 @@ void safe_read(Comm* comm, char* buf, int size, int offset)
             offset = 0;
         else
             offset = comm->in_offset;
+
         safe_read_shm(comm->in, buf, size, offset);
 
         comm->in_offset = (comm->in_offset + size) % SHM_SIZE;
@@ -73,7 +74,8 @@ void safe_write(Comm* comm, char* buf, int size, int offset)
         if(comm->out_offset + size >= SHM_SIZE)
             offset = 0;
         else
-            offset = comm->in_offset;
+            offset = comm->out_offset;
+
         safe_write_shm(comm->out, buf, size, offset);
 
         comm->out_offset = (comm->out_offset + size) % SHM_SIZE;
@@ -131,7 +133,7 @@ void safe_read_shm(char* in, char* buf, int size, int offset)
 
     memcpy(buf, &(in[offset]), size);
     memset(&(in[offset]), 0, size);
-    msync(in, size, MS_SYNC | MS_INVALIDATE);
+    msync(&(in[offset]), size, MS_SYNC | MS_INVALIDATE);
 }
 
 void safe_write_shm(char* out, char* buf, int size, int offset)
@@ -144,5 +146,5 @@ void safe_write_shm(char* out, char* buf, int size, int offset)
     free(cmp);
 
     memcpy(&(out[offset]), buf, size);
-    msync(out, size, MS_SYNC | MS_INVALIDATE);
+    msync(&(out[offset]), size, MS_SYNC | MS_INVALIDATE);
 }
