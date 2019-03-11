@@ -158,7 +158,8 @@ int PMI_Init()
 
 /* Libère la bibliothèque client PMI */
 int PMI_Finalize(void)
-{
+{   
+        PMI_Barrier();
 	long instruction = -1;
 	safe_write(&(info.comm), (char*)&instruction, sizeof(long), 0);
 	//close(info.fd);

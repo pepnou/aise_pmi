@@ -436,6 +436,8 @@ int main( int argc, char ** argv )
                         else
                             safe_read((Comm*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
                         fprintf(stderr, "%ld\n", instruction);
+                        if(instruction > 10)
+                            exit(2);
                         traitement(&jobs, job_num, (Job*)(temp->val), process_num, (Comm*)temp2->val, instruction );
                     }
                     if(instruction != -1)

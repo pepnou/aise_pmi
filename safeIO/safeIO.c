@@ -18,10 +18,10 @@ int comm_read(Comm comm, char* buf, int size)
         else
             offset = comm.in_offset;
 
-        char* cmp =  malloc(size + 1);
-        memset(cmp, 0, size + 1);
+        char* cmp =  malloc(size);
+        memset(cmp, 0, size);
         
-        if(!memcmp(cmp, &(comm.in[offset]), size + 1))
+        if(!memcmp(cmp, &(comm.in[offset + 1]), size))
         {
             free(cmp);
             return 0;
@@ -60,7 +60,7 @@ void safe_read(Comm* comm, char* buf, int size, int offset)
 
         safe_read_shm(comm->in, buf, size, offset);
 
-        //comm->in_offset = (comm->in_offset + size + 1) % SHM_SIZE;
+        comm->in_offset = (comm->in_offset + size + 1) % (SHM_SIZE - 1);
     }
     else
     {
@@ -73,13 +73,19 @@ void safe_write(Comm* comm, char* buf, int size, int offset)
     if(comm->fd == -1)
     {
         if(comm->out_offset + size + 1 >= SHM_SIZE)
+        {
+            /*char* cmp = malloc(SHM_SIZE - offset);
+            memset(cmp, 0, SHM_SIZE - offset);
+            while(!memcmp(&(comm->out[offset]), cmp, SHM_SIZE - offset));*/
+
             offset = 0;
+        }
         else
             offset = comm->out_offset;
 
         safe_write_shm(comm->out, buf, size, offset);
 
-        //comm->out_offset = (comm->out_offset + size + 1) % SHM_SIZE;
+        comm->out_offset = (comm->out_offset + size + 1) % (SHM_SIZE - 1);
     }
     else
     {
@@ -134,13 +140,10 @@ void safe_read_shm(char* in, char* buf, int size, int offset)
     while(!memcmp(cmp, &(in[offset + 1]), size));
     
     free(cmp);
-    
-    //char c;
-    //memcpy(&c, &(in[offset]), 1);
-
-    memcpy(buf, &(in[offset+1]), size);
-    memset(&(in[offset]), 0, size+1);
-    msync(&(in[offset]), size+1, MS_SYNC | MS_INVALIDATE);
+ 
+    memcpy(buf, &(in[offset + 1]), size);
+    memset(&(in[offset]), 0, size + 1);
+    msync(&(in[offset]), size + 1, MS_SYNC | MS_INVALIDATE);
 }
 
 void safe_write_shm(char* out, char* buf, int size, int offset)
@@ -152,9 +155,8 @@ void safe_write_shm(char* out, char* buf, int size, int offset)
 
     free(cmp);
     
-    char c = '\255';
-    memcpy(&(out[offset]), &c, 1);
+    memset(&(out[offset]), 1, 1);
 
-    memcpy(&(out[offset+1]), buf, size);
-    msync(&(out[offset]), size+1, MS_SYNC | MS_INVALIDATE);
+    memcpy(&(out[offset + 1]), buf, size);
+    msync(&(out[offset]), size + 1, MS_SYNC | MS_INVALIDATE);
 }
