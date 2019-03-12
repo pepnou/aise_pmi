@@ -15,7 +15,7 @@ double get_time()
 
 #define NUM 16384
 
-//#define NUM 512
+//#define NUM 2048
 
 int main(int argc, char ** argv )
 {
@@ -76,7 +76,7 @@ int main(int argc, char ** argv )
 	/* Do a BARRIER */
 	PMI_Barrier();
 
-	if( rank == 1 )
+	/*if( rank == 1 )
 	{
 		time = 0.0;
 		printf("Rank 1 reads %d keys ..", NUM);
@@ -90,7 +90,7 @@ int main(int argc, char ** argv )
 			char retval[PMI_STRING_LEN];
 			
 			start = get_time();
-			PMI_KVS_Get(key, retval, PMI_STRING_LEN);
+			PMI_KVS_Get(key, retval, strlen(val));
 			end = get_time();
 			time += (end - start);
 
@@ -102,9 +102,47 @@ int main(int argc, char ** argv )
 			}
 		}
 		fprintf(stderr, "Reading a key takes %g usec\n", 1e6*(time)/(double)NUM); 
+	}*/
+
+        if( rank == 1 )
+	{
+                long msg_size;
+		time = 0.0;
+		printf("Rank 1 reads %d keys ..", NUM);
+		for( i = 0 ; i < NUM; i++)
+		{
+			snprintf(key, PMI_STRING_LEN, "iter_%d", i);
+			
+			start = get_time();
+			PMI_KVS_Get_rqst(key);
+			end = get_time();
+			time += (end - start);
+		}
+
+                for( i = 0 ; i < NUM; i++)
+		{
+                        if(!(i%1000))
+				printf("%d / %d\n", i, NUM);
+			char retval[PMI_STRING_LEN];
+
+                        snprintf(val, PMI_STRING_LEN, "%d", i);
+			
+			start = get_time();
+			PMI_KVS_Get_wait(retval, &msg_size);
+			end = get_time();
+			time += (end - start);
+
+			if(strcmp(val, retval))
+			{
+                                fprintf(stderr, "size read : %ld\n", msg_size);
+				fprintf(stderr, "Error in data %s instead of %s\n", retval, val);
+                                PMI_Finalize();
+				return 1;
+			}
+		}
+
+		fprintf(stderr, "Reading a key takes %g usec\n", 1e6*(time)/(double)NUM); 
 	}
-
-
 
 
 	if( PMI_Finalize() != PMI_SUCCESS )

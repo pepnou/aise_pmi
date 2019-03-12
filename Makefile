@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -W -O0 -g
-LFLAGS= -L. -lpmi
+LFLAGS= -L. -lpmi -lm
 TARGET=libpmi.so pmiserver test_value test_perf test_perso
 OBJ=./server/main.o ./hashtab/hashtab.o ./key/key.o ./queue/queue.o ./safeIO/safeIO.o ./sha256/sha256.o
 
@@ -10,7 +10,7 @@ libpmi.so: ./libpmi/pmi.c ./safeIO/safeIO.c ./key/key.c ./sha256/sha256.c
 	$(CC) $(CFLAGS) -shared -fPIC $^ -o $@
 
 pmiserver: $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LFLAGS)
 	
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -c $< -o $@

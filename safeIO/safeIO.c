@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <math.h>
 
 
 int comm_read(Comm comm, char* buf, int size)
@@ -60,7 +61,7 @@ void safe_read(Comm* comm, char* buf, int size, int offset)
 
         safe_read_shm(comm->in, buf, size, offset);
 
-        //comm->in_offset = (comm->in_offset + size + 1) % (SHM_SIZE - 1);
+        comm->in_offset = (comm->in_offset + size + 1) % (SHM_SIZE - 1);
     }
     else
     {
@@ -86,7 +87,7 @@ void safe_write(Comm* comm, char* buf, int size, int offset)
 
         safe_write_shm(comm->out, buf, size, offset);
 
-        //comm->out_offset = (comm->out_offset + size + 1) % (SHM_SIZE - 1);
+        comm->out_offset = (comm->out_offset + size + 1) % (SHM_SIZE - 1);
     }
     else
     {
@@ -146,11 +147,25 @@ void safe_read_shm(char* in, char* buf, int size, int offset)
  
     memcpy(buf, &(in[offset + 1]), size);
     memset(&(in[offset]), 0, size + 1);
-    msync(&(in[offset]), size + 1, MS_SYNC | MS_INVALIDATE);
+    
+    int deb = (offset/PAGE_SIZE) * PAGE_SIZE;
+    int nb_page = ceil((double)(offset - deb + (size + 1))/PAGE_SIZE);
+
+    //int ret = msync(&(out[offset]), size + 1, MS_SYNC | MS_INVALIDATE);
+    int ret = msync(&(in[deb]), nb_page * PAGE_SIZE, MS_ASYNC | MS_INVALIDATE);
+    if(ret == -1)
+    {
+        fprintf(stderr, "%d %d %d %d\n", errno, EBUSY, EINVAL, ENOMEM);
+        fprintf(stderr, "%d %d %d\n", deb, nb_page, nb_page*PAGE_SIZE);
+        perror("msync");
+        exit(1);
+    }
 }
 
 void safe_write_shm(char* out, char* buf, int size, int offset)
 {
+    //fprintf(stderr, "%s\n", buf);
+
     char* cmp =  malloc(size + 1);
     memset(cmp, 0, size + 1);
 
@@ -160,8 +175,32 @@ void safe_write_shm(char* out, char* buf, int size, int offset)
 
     //fprintf(stderr, "%d\n", offset);
     
-    memset(&(out[offset]), 1, 1);
-
+    memset(&(out[offset]), 0xFF, 1);
     memcpy(&(out[offset + 1]), buf, size);
-    msync(&(out[offset]), size + 1, MS_SYNC | MS_INVALIDATE);
+    
+    int deb = (offset/PAGE_SIZE) * PAGE_SIZE;
+    int nb_page = ceil((double)(offset - deb + (size + 1))/PAGE_SIZE);
+
+    //int ret = msync(&(out[offset]), size + 1, MS_SYNC | MS_INVALIDATE);
+    int ret = msync(&(out[deb]), nb_page * PAGE_SIZE, MS_ASYNC | MS_INVALIDATE);
+    if(ret == -1)
+    {
+        fprintf(stderr, "%d %d %d %d\n", errno, EBUSY, EINVAL, ENOMEM);
+        fprintf(stderr, "%d %d %d\n", deb, nb_page, nb_page*PAGE_SIZE);
+        perror("msync");
+        exit(1);
+    }
 }
+
+/*void flush_shm(char* shm, int deb, int fin)
+{
+    if(fin < deb)
+    {
+        flush_shm(shm, deb, SHM_SIZE - 1);
+        flush_shm(shm, 0, fin);
+    }
+    else
+    {
+        
+    }
+}*/

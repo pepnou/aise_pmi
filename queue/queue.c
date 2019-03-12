@@ -1,10 +1,16 @@
 #include "queue.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 
 void ajout_deb(Queue* list, void* val)
 {
 	Queue new_elem = malloc(sizeof(elem));
+        if(new_elem == NULL)
+        {
+            perror("malloc");
+            exit(1);
+        }
 	new_elem->val = val;
 	new_elem->suiv = *list;
 	*list = new_elem;

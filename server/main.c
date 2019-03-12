@@ -15,7 +15,7 @@
 #include "../key/key.h"
 #include "../safeIO/safeIO.h"
 
-#define MAP_SIZE 4096
+//#define MAP_SIZE 4096
 
 typedef struct
 {
@@ -57,8 +57,8 @@ void freeJob(Job* job)
         }
         else
         {
-            munmap(comm->in, MAP_SIZE);
-            munmap(comm->out, MAP_SIZE);
+            munmap(comm->in, SHM_SIZE);
+            munmap(comm->out, SHM_SIZE);
         }
 
         free((Comm*)(tmp1->val));
@@ -143,7 +143,10 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, Comm* comm,
                 safe_write(comm, (char*)(msg->val), msg->size, 0);
             }
             else
+            {
+                size = -1;
                 safe_write(comm, (char*)&size, sizeof(long), 0);
+            }
             break;
         }
         default: //set value of size 'instruction'
@@ -341,27 +344,27 @@ int main( int argc, char ** argv )
                                 
                 sprintf(file_name, "./map/%ld_%ld_0", jobid, rank);
                 mmap_fd = open(file_name, O_CREAT | O_RDWR,0666);
-                //ftruncate(mmap_fd, MAP_SIZE);
-                comm->in = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
+                //ftruncate(mmap_fd, SHM_SIZE);
+                comm->in = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
                 if(comm->in == MAP_FAILED)
                 {
                     perror("mmap");
                     exit(1);
                 }
-                //memset(comm->in, 0, MAP_SIZE);
-                //msync(comm->in, MAP_SIZE, MS_SYNC | MS_INVALIDATE);*/
+                //memset(comm->in, 0, SHM_SIZE);
+                //msync(comm->in, SHM_SIZE, MS_SYNC | MS_INVALIDATE);*/
 
                 sprintf(file_name, "./map/%ld_%ld_1", jobid, rank);
                 mmap_fd = open(file_name, O_CREAT | O_RDWR,0666);
-                //ftruncate(mmap_fd, MAP_SIZE);
-                comm->out = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
+                //ftruncate(mmap_fd, SHM_SIZE);
+                comm->out = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mmap_fd, 0);
                 if(comm->out == MAP_FAILED)
                 {
                     perror("mmap");
                     exit(1);
                 }
-                //memset(comm->out, 0, MAP_SIZE);
-                //msync(comm->out, MAP_SIZE, MS_SYNC | MS_INVALIDATE);
+                //memset(comm->out, 0, SHM_SIZE);
+                //msync(comm->out, SHM_SIZE, MS_SYNC | MS_INVALIDATE);
 
                 comm->in_offset = 0;
                 comm->out_offset = 0;

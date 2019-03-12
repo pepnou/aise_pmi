@@ -29,6 +29,9 @@ int PMI_Barrier(void);
 int PMI_KVS_Put( char key[],  void* val, long size);
 
 /* Lit une clef depuis le stockage de la PMI */
-int PMI_KVS_Get( char key[], void* val, long size);
+int PMI_KVS_Get( char key[], void* val, long *size);
+void PMI_KVS_Get_rqst( char key[]);
+int PMI_KVS_Get_wait( void* val, long *size);
+
 
 #endif /* PMI_H */

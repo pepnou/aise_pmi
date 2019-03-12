@@ -1,7 +1,9 @@
 #ifndef __SAFEIO__
 #define __SAFEIO__
 
-#define SHM_SIZE 4096
+//#define SHM_SIZE 4096
+#define SHM_SIZE 16777216
+#define PAGE_SIZE 4096
 
 typedef struct
 {
@@ -23,7 +25,9 @@ void safe_read_fd(int fd, char* buf, int size, int offset);
 void safe_write_fd(int fd, char* buf, int size, int offset); 
 
 void safe_read_shm(char* out, char* buf, int size, int offset);
-void safe_write_shm(char* in, char* buf, int size, int offset); 
+void safe_write_shm(char* in, char* buf, int size, int offset);
+
+//void flush_shm(char* shm, int size, int offset);
 
 
 #endif

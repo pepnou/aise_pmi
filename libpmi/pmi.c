@@ -20,6 +20,8 @@ typedef struct {
 	long jobid;
 	Comm comm;
         sha256_context sha;
+
+        int out_size;
 } Info;
 
 Info info;
@@ -146,6 +148,7 @@ int PMI_Init()
 
             close(info.comm.fd);
             info.comm.fd = -1;
+            info.out_size = 0;
         }
         else //socket
         {
@@ -224,13 +227,39 @@ int PMI_KVS_Put( char key[],  void* val, long size)
     return PMI_SUCCESS;
 }
 
-
 /* Lit une clef depuis le stockage de la PMI */
-int PMI_KVS_Get( char key[], void* val, long size)
+int PMI_KVS_Get( char key[], void* val, long *size)
 {
     char* buf = (char*)val;
     
-    size = -3;
+    *size = -3;
+
+    Key hashed_key;
+    init_key(&hashed_key);
+
+    sha256_starts(&(info.sha));
+    sha256_update(&(info.sha), (unsigned char*)key, strlen(key));
+    sha256_finish(&(info.sha), (unsigned char*)hashed_key);
+    
+    safe_write(&(info.comm), (char*)size, sizeof(long), 0);
+    safe_write(&(info.comm), (char*)hashed_key, KEY_SIZE / 8, 0);
+
+    safe_read(&(info.comm), (char*)size, sizeof(long), 0);
+
+    freeKey(hashed_key);
+
+    if(*size > 0)
+    {
+        safe_read(&(info.comm), buf, *size, 0);
+        return PMI_SUCCESS;
+    }
+    else
+        return PMI_NO_KEY;
+}
+
+void PMI_KVS_Get_rqst( char key[])
+{
+    long size = -3;
 
     Key hashed_key;
     init_key(&hashed_key);
@@ -242,16 +271,20 @@ int PMI_KVS_Get( char key[], void* val, long size)
     safe_write(&(info.comm), (char*)&size, sizeof(long), 0);
     safe_write(&(info.comm), (char*)hashed_key, KEY_SIZE / 8, 0);
 
-    safe_read(&(info.comm), (char*)&size, sizeof(long), 0);
-
     freeKey(hashed_key);
+}
 
-    if(size)
+int PMI_KVS_Get_wait( void* val, long *size)
+{
+    char* buf = (char*)val;
+    
+    safe_read(&(info.comm), (char*)size, sizeof(long), 0);
+    
+    if(*size > 0)
     {
-        safe_read(&(info.comm), buf, size, 0);
+        safe_read(&(info.comm), buf, *size, 0);
         return PMI_SUCCESS;
     }
     else
         return PMI_NO_KEY;
 }
-
