@@ -139,6 +139,8 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, Comm* comm,
 
             if(msg)
             {
+                //fprintf(stdout, "%s %ld\n", msg->val, msg->size);
+                
                 safe_write(comm, (char*)&(msg->size), sizeof(long), 0);
                 safe_write(comm, (char*)(msg->val), msg->size, 0);
             }
@@ -161,6 +163,8 @@ void traitement(Queue* jobs, int job_num, Job* job, int process_num, Comm* comm,
                 exit(1);
             }
             safe_read(comm, msg->val, msg->size, 0);
+
+            //fprintf(stdout, "%s\n", msg->val);
 
             void* previous_val = setValue(&(job->hash_tab), key, (void*)msg);
             if(previous_val)
@@ -428,7 +432,7 @@ int main( int argc, char ** argv )
                             safe_read((Comm*)temp2->val, (char*)&instruction, sizeof(long), 0);
                         else
                             safe_read((Comm*)temp2->val, (char*)&instruction, sizeof(long) - red, red);
-                        fprintf(stderr, "%ld\n", instruction);
+                        //fprintf(stdout, "%ld\n", instruction);
                         //if(instruction > 10)
                         //    exit(2);
                         traitement(&jobs, job_num, (Job*)(temp->val), process_num, (Comm*)temp2->val, instruction );

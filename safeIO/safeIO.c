@@ -146,6 +146,9 @@ void safe_read_shm(char* in, char* buf, int size, int offset)
     //fprintf(stderr, "%d\n", offset);
  
     memcpy(buf, &(in[offset + 1]), size);
+    //for(int i = 0; i < size; i++)
+    //    buf[i] = in[offset + 1 + i];
+    
     memset(&(in[offset]), 0, size + 1);
     
     int deb = (offset/PAGE_SIZE) * PAGE_SIZE;
@@ -177,6 +180,11 @@ void safe_write_shm(char* out, char* buf, int size, int offset)
     
     memset(&(out[offset]), 0xFF, 1);
     memcpy(&(out[offset + 1]), buf, size);
+    //for(int i = 0; i < size; i++)
+    //    out[offset + 1 + i] = buf[i];
+
+    //if(size > 2 && size < 7)
+    //    fprintf(stdout, "write : %s\n", &(out[offset + 1]));
     
     int deb = (offset/PAGE_SIZE) * PAGE_SIZE;
     int nb_page = ceil((double)(offset - deb + (size + 1))/PAGE_SIZE);

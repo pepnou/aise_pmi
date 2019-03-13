@@ -60,8 +60,9 @@ int main(int argc, char ** argv )
 		snprintf(val, PMI_STRING_LEN, "%d", rand());
 		char returned_val[PMI_STRING_LEN];
 		returned_val[0]='\0';
+                long msg_size;
 		
-		if( PMI_KVS_Get(key, returned_val, PMI_STRING_LEN) != PMI_SUCCESS)
+		if( PMI_KVS_Get(key, returned_val, &msg_size) != PMI_SUCCESS)
 		{
 			fprintf(stderr, "Could not get key\n");
 			return 1;

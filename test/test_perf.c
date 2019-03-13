@@ -15,7 +15,7 @@ double get_time()
 
 #define NUM 16384
 
-//#define NUM 2048
+//#define NUM 262144
 
 int main(int argc, char ** argv )
 {
@@ -64,7 +64,7 @@ int main(int argc, char ** argv )
 			snprintf(key, PMI_STRING_LEN, "iter_%d", i);
 			snprintf(val, PMI_STRING_LEN, "%d", i);
 			start = get_time();
-			PMI_KVS_Put(key, val, strlen(val));
+			PMI_KVS_Put(key, val, strlen(val) + 1);
                         end = get_time();
 			time += (end - start);
 
@@ -78,6 +78,7 @@ int main(int argc, char ** argv )
 
 	/*if( rank == 1 )
 	{
+                long msg_size;
 		time = 0.0;
 		printf("Rank 1 reads %d keys ..", NUM);
 		for( i = 0 ; i < NUM; i++)
@@ -90,15 +91,16 @@ int main(int argc, char ** argv )
 			char retval[PMI_STRING_LEN];
 			
 			start = get_time();
-			PMI_KVS_Get(key, retval, strlen(val));
+			PMI_KVS_Get(key, retval, &msg_size);
 			end = get_time();
 			time += (end - start);
 
 			if(strcmp(val, retval))
 			{
+                                fprintf(stderr, "size read : %ld\n", msg_size);
 				fprintf(stderr, "Error in data %s instead of %s\n", retval, val);
-                                PMI_Finalize();
-				return 1;
+                                //PMI_Finalize();
+				//return 1;
 			}
 		}
 		fprintf(stderr, "Reading a key takes %g usec\n", 1e6*(time)/(double)NUM); 
@@ -106,6 +108,7 @@ int main(int argc, char ** argv )
 
         if( rank == 1 )
 	{
+                int errors = 0;
                 long msg_size;
 		time = 0.0;
 		printf("Rank 1 reads %d keys ..", NUM);
@@ -132,16 +135,24 @@ int main(int argc, char ** argv )
 			end = get_time();
 			time += (end - start);
 
-			if(strcmp(val, retval))
+			//if(strcmp(val, retval))
+                        if(memcmp(val, retval, strlen(val)))
 			{
+                                //PMI();
+                                fflush(stdout);
                                 fprintf(stderr, "size read : %ld\n", msg_size);
 				fprintf(stderr, "Error in data %s instead of %s\n", retval, val);
-                                PMI_Finalize();
-				return 1;
+
+                                for(int i = 0; i < msg_size; i++)
+                                    fprintf(stderr, "%d ", retval[i]);
+
+                                //PMI_Finalize();
+				//return 1;
+                                errors++;
 			}
 		}
 
-		fprintf(stderr, "Reading a key takes %g usec\n", 1e6*(time)/(double)NUM); 
+		fprintf(stderr, "Reading a key takes %g usec, with %d errors on %d tests\n", 1e6*(time)/(double)NUM, errors, NUM); 
 	}
 
 

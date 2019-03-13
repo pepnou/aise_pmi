@@ -106,11 +106,11 @@ int PMI_Init()
 	safe_write_fd(info.comm.fd, (char*)(&(info.jobid)), sizeof(long), 0);
 	safe_write_fd(info.comm.fd, (char*)(&(info.size)), sizeof(long), 0);
 
-
+        char* dynamic_comm = getenv("DYNAMIC_COMM");
         
         char comm_type;
 
-        if(!strncmp(ip, "127.0.0.", 8)) //shm
+        if(!strncmp(ip, "127.0.0.", 8) && !(dynamic_comm && (strcmp(dynamic_comm, "NO") == 0 || strcmp(dynamic_comm, "no") == 0 || strcmp(dynamic_comm, "N") == 0 || strcmp(dynamic_comm, "n") == 0 || strcmp(dynamic_comm, "non") == 0 || strcmp(dynamic_comm, "NON") == 0 ))) //shm
         {
             char* file_name = malloc(1024*sizeof(char));
             int mmap_fd = 0;
@@ -282,9 +282,19 @@ int PMI_KVS_Get_wait( void* val, long *size)
     
     if(*size > 0)
     {
+        //usleep(1);
+        //fprintf(stdout, "%s\n", &(info.comm.in[info.comm.in_offset + 1]));
+        //fprintf(stdout, "received : %s\n", buf);
+        //fprintf(stderr, "%d ", info.comm.in_offset);
         safe_read(&(info.comm), buf, *size, 0);
+        //fprintf(stdout, "received : %s\n", buf);
         return PMI_SUCCESS;
     }
     else
         return PMI_NO_KEY;
+}
+
+void PMI()
+{
+    
 }
