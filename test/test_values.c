@@ -33,6 +33,7 @@ int main(int argc, char ** argv )
 	/* Set 3 random values for this rank */
 	srand(rank);
 	int i;
+	PMI_Lock();
 	for( i = 0 ; i < 3; i++)
 	{
 		snprintf(key, PMI_STRING_LEN, "rank_%d_iter_%d", rank, i);
@@ -44,6 +45,7 @@ int main(int argc, char ** argv )
 			return 1;
 		}
 	}
+	PMI_Unlock();
 
 
 	printf("%d/%d ----- BARRIER -----\n", rank, size );

@@ -30,10 +30,21 @@ int PMI_KVS_Put( char key[],  void* val, long size);
 
 /* Lit une clef depuis le stockage de la PMI */
 int PMI_KVS_Get( char key[], void* val, long *size);
+
+/* Fait le demande a la PMI de recuperer une valeur associé a une clé */
 void PMI_KVS_Get_rqst( char key[]);
+
+/* Attend la réponse de la PMI apres l'appel a PMI_KVS_Get_rqst */
 int PMI_KVS_Get_wait( void* val, long *size);
+
+/* Definie le début d'une section contenant des appels aux fonctions PMI_KVS_Put, PMI_KVS_Get_rqst et PMI_KVS_wait */
 void PMI_Lock();
+
+/* Definie la fin d'une section contenant des appels aux fonctions PMI_KVS_Put, PMI_KVS_Get_rqst et PMI_KVS_wait */
 void PMI_Unlock();
 
+/*
+
+*/
 
 #endif /* PMI_H */
