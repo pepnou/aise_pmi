@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -W -O0 -g
-LFLAGS= -L. -lpmi -lm
+LFLAGS= -L. -lpmi -lm -Wl,-rpath,${PWD}
 TARGET=libpmi.so pmiserver test_value test_perf test_perso
 OBJ=./server/main.o ./hashtab/hashtab.o ./key/key.o ./queue/queue.o ./safeIO/safeIO.o ./sha256/sha256.o
 
