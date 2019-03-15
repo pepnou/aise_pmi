@@ -9,10 +9,13 @@ compilation et execution :
 	make
 
 -> lancer le serveur :
-	./pmiserver [numero du port >= 1024]
+	sudo ./pmiserver [numero du port >= 1024]
 -> lancer les processus clients :
-	./helper/pmirun 127.0.0.1:[numero du port serveur] [nombre de processus du client] ./[programme a lancer]
-	/!\ 127.0.0.1 est pour le local, autrement, utilisé l'ip du serveur distant
+	sudo ./helper/pmirun [ip du serveur]:[numero du port serveur] [nombre de processus du client] [programme a lancer]
+	/!\ toute ip commençant par 127.0.0 est pour le local, distant autrement
+
+/!\ Apres l'execution du programme, supprimer le repertoire map pour eviter de vous retrouver enfouis sous des fichier de 16Mb.
+/!\ Chaque programme lancé avec pmirun nécessite 32Mb de mémoire RAM.
 
 
 LISTE DES FONCTIONNALITEES :
@@ -21,37 +24,22 @@ A1
 A2
 A3
 A4
+
 B5
 B7
+Pour des raisons qui nous échappent, lors de la lecture de valeur dans le segment shm, des valeures héronées peuvent être lues, malgrés la mise en place de mlock et msync.
+Nous avons modifié le programme de test pour que celui-ci ne s'arrete pas a la lecture d'une valeure fausse, ce qui nous a permis de constater que sur 300 000 clé-valeur écrite nous rencontrions moins de 3 fautes. L'utilisation des sockets ne génére aucune erreur dans les tests (voir b8 pour leurs utilisation).
 B8
+Le changement de la couche de transport en fonction de la localité des processus est naturellement utilisé. I est cependant possible de forcer l'utilisation des sockets en spécifiant la variable d'environement DYNAMIC_COMM au lancement, ce qui donne la commande suivante : 
+	sudo DYNAMIC_COMM=n ./helper/pmirun [ip du serveur]:[numero du port serveur] [nombre de processus du client] [programme a lancer]
 B9
-(lors des test d'utilisation en local avec sockets , écriture de clé : ~ 3,47 usec et lecture : ~ 89 822 usec)
-(lors des test d'utilisation en local avec shm, écriture de clé : 44 450 usec et lecture : 48 249 usec)
-(Nous avons essayer de mettre en place une politique de lecture écriture circulaire lors de l'implementation du segment shm révélant des tests en lecture et écriture de clé atteingnant ~100 usec mais, cette implémentation n'etant pas complètement fonctionel nous ne l'utilisons pas dans le programme final)
+lors des test d'utilisation en local avec sockets , écriture de clé : 4 usec et lecture : 10 usec
+lors des test d'utilisation en local avec shm, écriture de clé : 2 usec et lecture : 8 usec
+
 C11 :
-- amélioration de performance en passant par une table de hachage pour les clées
-- support multijob et multiprocess
-- type d'envoi non limitant a condition que ce soit contigu en mémoire
-
-
-
-
-
-
-
-
-
-
-
-SUJET :
-
-
-
-
-
-
-
-
+- amélioration de performance en passant par une table de hachage pour les clés
+- support multijob et multiprocess pour le serveur
+- support de n'importe quel type d'envoi a condition que le type soit contigu en mémoire
 
 
 

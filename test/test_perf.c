@@ -125,6 +125,9 @@ int main(int argc, char ** argv )
 			time += (end - start);
 		}
 
+		PMI_Unlock();
+		PMI_Lock();
+
                 for( i = 0 ; i < NUM; i++)
 		{
                         if(!(i%1000))
