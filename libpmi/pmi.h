@@ -32,8 +32,8 @@ int PMI_KVS_Put( char key[],  void* val, long size);
 int PMI_KVS_Get( char key[], void* val, long *size);
 void PMI_KVS_Get_rqst( char key[]);
 int PMI_KVS_Get_wait( void* val, long *size);
+void PMI_Lock();
+void PMI_Unlock();
 
-/* debuf fct */
-void PMI();
 
 #endif /* PMI_H */

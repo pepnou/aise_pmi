@@ -57,6 +57,7 @@ int main(int argc, char ** argv )
 	{
 		time = 0.0;
 		printf("Rank 0 sets %d keys ..", NUM);
+		PMI_Lock();
 		for( i = 0 ; i < NUM; i++)
 		{
 			if(!(i%1000))
@@ -69,6 +70,7 @@ int main(int argc, char ** argv )
 			time += (end - start);
 
 		}
+		PMI_Unlock();
 		fprintf(stderr, "Writing a key takes %g usec\n", 1e6*(time)/(double)NUM); 
 	}
 
@@ -108,6 +110,7 @@ int main(int argc, char ** argv )
 
         if( rank == 1 )
 	{
+		PMI_Lock();
                 int errors = 0;
                 long msg_size;
 		time = 0.0;
@@ -131,7 +134,9 @@ int main(int argc, char ** argv )
                         snprintf(val, PMI_STRING_LEN, "%d", i);
 			
 			start = get_time();
-			PMI_KVS_Get_wait(retval, &msg_size);
+			int ret = PMI_KVS_Get_wait(retval, &msg_size);
+			if(ret == PMI_NO_KEY)
+				fprintf(stderr, "Could not get key\n");
 			end = get_time();
 			time += (end - start);
 
@@ -151,6 +156,7 @@ int main(int argc, char ** argv )
                                 errors++;
 			}
 		}
+		PMI_Unlock();
 
 		fprintf(stderr, "Reading a key takes %g usec, with %d errors on %d tests\n", 1e6*(time)/(double)NUM, errors, NUM); 
 	}

@@ -219,9 +219,9 @@ int PMI_KVS_Put( char key[],  void* val, long size)
     sha256_update(&(info.sha), (unsigned char*)key, strlen(key));
     sha256_finish(&(info.sha), (unsigned char*)hashed_key);
     
-    safe_write(&(info.comm), (char*)&size, sizeof(long), 0);
-    safe_write(&(info.comm), (char*)hashed_key, KEY_SIZE / 8, 0);
-    safe_write(&(info.comm), buf, size, 0);
+    safe_write_non_block(&(info.comm), (char*)&size, sizeof(long), 0);
+    safe_write_non_block(&(info.comm), (char*)hashed_key, KEY_SIZE / 8, 0);
+    safe_write_non_block(&(info.comm), buf, size, 0);
     
     freeKey(hashed_key);
     return PMI_SUCCESS;
@@ -257,7 +257,7 @@ int PMI_KVS_Get( char key[], void* val, long *size)
         return PMI_NO_KEY;
 }
 
-void PMI_KVS_Get_rqst( char key[])
+/*void PMI_KVS_Get_rqst( char key[])
 {
     long size = -3;
 
@@ -292,9 +292,101 @@ int PMI_KVS_Get_wait( void* val, long *size)
     }
     else
         return PMI_NO_KEY;
+}*/
+
+void PMI_Lock()
+{
+    if(info.comm.fd == -1)
+    {
+        int ret;
+
+
+
+        ret = mlock(info.comm.in, SHM_SIZE);
+        if(ret == -1)
+        {
+            perror("mlock");
+            exit(1);
+        }
+
+        ret = mlock(info.comm.out, SHM_SIZE);
+        if(ret == -1)
+        {
+            perror("mlock");
+            exit(1);
+        }
+    }
 }
 
-void PMI()
+void PMI_Unlock()
 {
+    if(info.comm.fd == -1)
+    {
+        int ret;
+
+        ret = munlock(info.comm.in, SHM_SIZE);
+        if(ret == -1)
+        {
+            perror("munlock");
+            exit(1);
+        }
+
+        ret = munlock(info.comm.out, SHM_SIZE);
+        if(ret == -1)
+        {
+            perror("munlock");
+            exit(1);
+        }
+
+        ret = msync(info.comm.in, SHM_SIZE, MS_ASYNC | MS_INVALIDATE);
+        if(ret == -1)
+        {
+            perror("msync");
+            exit(1);
+        }
+
+        ret = msync(info.comm.out, SHM_SIZE, MS_ASYNC | MS_INVALIDATE);
+        if(ret == -1)
+        {
+            perror("msync");
+            exit(1);
+        }
+    }
+}
+
+void PMI_KVS_Get_rqst( char key[])
+{
+    long size = -3;
+
+    Key hashed_key;
+    init_key(&hashed_key);
+
+    sha256_starts(&(info.sha));
+    sha256_update(&(info.sha), (unsigned char*)key, strlen(key));
+    sha256_finish(&(info.sha), (unsigned char*)hashed_key);
     
+    safe_write_non_block(&(info.comm), (char*)&size, sizeof(long), 0);
+    safe_write_non_block(&(info.comm), (char*)hashed_key, KEY_SIZE / 8, 0);
+
+    freeKey(hashed_key);
+}
+
+int PMI_KVS_Get_wait( void* val, long *size)
+{
+    char* buf = (char*)val;
+    
+    safe_read_non_block(&(info.comm), (char*)size, sizeof(long), 0);
+    
+    if(*size > 0)
+    {
+        //usleep(1);
+        //fprintf(stdout, "%s\n", &(info.comm.in[info.comm.in_offset + 1]));
+        //fprintf(stdout, "received : %s\n", buf);
+        //fprintf(stderr, "%d ", info.comm.in_offset);
+        safe_read_non_block(&(info.comm), buf, *size, 0);
+        //fprintf(stdout, "received : %s\n", buf);
+        return PMI_SUCCESS;
+    }
+    else
+        return PMI_NO_KEY;
 }
